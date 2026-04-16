@@ -1,5 +1,5 @@
-import Renderer from "/lib/Viz/2DRenderer.js";
-import FinalProjectParticleSystemObject from "/lib/Scene/FinalProjectParticleSystemObject.js";
+import Renderer from "./lib/Viz/2DRenderer.js";
+import FinalProjectParticleSystemObject from "./lib/Scene/FinalProjectParticleSystemObject.js";
 
 async function init() {
   const canvas = document.createElement("canvas");
@@ -16,7 +16,7 @@ async function init() {
   const particles = new FinalProjectParticleSystemObject(
     renderer._device,
     renderer._canvasFormat,
-    "/lib/Shaders/finalprojectparticles.wgsl",
+    "./lib/Shaders/finalprojectparticles.wgsl",
     4096
   );
 
