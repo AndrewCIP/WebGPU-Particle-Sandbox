@@ -1,5 +1,5 @@
-import Renderer from "./lib/Viz/2DRenderer.js";
-import FinalProjectParticleSystemObject from "./lib/Scene/FinalProjectParticleSystemObject.js";
+import Renderer from "/lib/Viz/2DRenderer.js";
+import FinalProjectParticleSystemObject from "/lib/Scene/FinalProjectParticleSystemObject.js";
 
 async function init() {
   const canvas = document.createElement("canvas");
@@ -16,7 +16,7 @@ async function init() {
   const particles = new FinalProjectParticleSystemObject(
     renderer._device,
     renderer._canvasFormat,
-    "./lib/Shaders/finalprojectparticles.wgsl",
+    "/lib/Shaders/finalprojectparticles.wgsl",
     4096
   );
 
@@ -30,6 +30,7 @@ async function init() {
     forceStrength: 0.002,
     damping: 0.992,
     particleScale: 1.0,
+    trailsEnabled: 0,
   };
 
   function getModeName(mode) {
@@ -38,6 +39,7 @@ async function init() {
       case 2: return "Gravity";
       case 3: return "Explosion";
       case 4: return "Orbit";
+      case 5: return "Cursor Follow";
       default: return "Unknown";
     }
   }
@@ -46,13 +48,14 @@ async function init() {
     hud.innerHTML = `
       <div><strong>Interactive WebGPU Particle Sandbox</strong></div>
       <div>Mode: ${getModeName(input.simMode)}</div>
+      <div>Trails: ${input.trailsEnabled ? "ON" : "OFF"} (T)</div>
       <div>Force Strength: ${input.forceStrength.toFixed(4)}</div>
       <div>Damping: ${input.damping.toFixed(3)}</div>
       <div>Particle Size: ${input.particleScale.toFixed(1)}</div>
-      <div style="margin-top:8px;">1 Static | 2 Gravity | 3 Explosion | 4 Orbit</div>
+      <div style="margin-top:8px;">1 Static | 2 Gravity | 3 Explosion | 4 Orbit | 5 Cursor Follow</div>
       <div>Left Click Attract | Right Click Repel</div>
       <div>Arrow Up/Down = Force | Arrow Left/Right = Damping</div>
-      <div>[ Smaller | ] Bigger</div>
+      <div>[ Smaller | ] Bigger | T Trails</div>
     `;
   }
 
@@ -92,6 +95,9 @@ async function init() {
       case "4":
         input.simMode = 4;
         break;
+      case "5":
+        input.simMode = 5;
+        break;
       case "ArrowUp":
         input.forceStrength = Math.min(input.forceStrength + 0.0002, 0.01);
         break;
@@ -108,7 +114,11 @@ async function init() {
         input.particleScale = Math.max(input.particleScale - 0.1, 1.0);
         break;
       case "]":
-        input.particleScale = Math.min(input.particleScale + 0.1, 10.0);
+        input.particleScale = Math.min(input.particleScale + 0.1, 5.0);
+        break;
+      case "t":
+      case "T":
+        input.trailsEnabled = input.trailsEnabled ? 0 : 1;
         break;
     }
 
