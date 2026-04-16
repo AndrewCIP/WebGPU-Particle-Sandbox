@@ -1,9 +1,10 @@
 struct Particle {
   p: vec2f,
+  prevP: vec2f,
   v: vec2f,
   life: f32,
   size: f32,
-  color: vec3f,
+  color: vec4f,
 };
 
 struct InputState {
@@ -13,7 +14,7 @@ struct InputState {
   forceStrength: f32,
   damping: f32,
   particleScale: f32,
-  pad: f32,
+  trailsEnabled: f32,
 };
 
 struct VertexOut {
@@ -25,33 +26,61 @@ struct VertexOut {
 @group(0) @binding(1) var<storage, read_write> particlesOut: array<Particle>;
 @group(0) @binding(2) var<uniform> inputState: InputState;
 
+fn quadCorner(vIdx: u32) -> vec2f {
+  switch (vIdx) {
+    case 0u: { return vec2f(-1.0, -1.0); }
+    case 1u: { return vec2f( 1.0, -1.0); }
+    case 2u: { return vec2f( 1.0,  1.0); }
+    case 3u: { return vec2f(-1.0, -1.0); }
+    case 4u: { return vec2f( 1.0,  1.0); }
+    default: { return vec2f(-1.0,  1.0); }
+  }
+}
+
 @vertex
 fn vertexMain(
   @builtin(vertex_index) vIdx: u32,
   @builtin(instance_index) pIdx: u32
 ) -> VertexOut {
   let p = particlesIn[pIdx];
-
   let speed = length(p.v);
-  let brightness = clamp(0.45 + speed * 30.0, 0.45, 1.25);
+  let brightness = clamp(0.45 + speed * 30.0, 0.45, 1.35);
 
   let baseHalfSize = 0.001;
   let halfSize = baseHalfSize * p.size * inputState.particleScale;
 
-  var offset = vec2f(0.0, 0.0);
+  let corner = quadCorner(vIdx);
+  var pos = p.p + corner * halfSize;
 
-  switch (vIdx) {
-    case 0u: { offset = vec2f(-halfSize, -halfSize); }
-    case 1u: { offset = vec2f( halfSize, -halfSize); }
-    case 2u: { offset = vec2f( halfSize,  halfSize); }
-    case 3u: { offset = vec2f(-halfSize, -halfSize); }
-    case 4u: { offset = vec2f( halfSize,  halfSize); }
-    default: { offset = vec2f(-halfSize,  halfSize); }
+  if (inputState.trailsEnabled == 1.0) {
+    let segment = p.p - p.prevP;
+    let segLen = length(segment);
+
+    if (segLen > 0.0001) {
+      let dir = normalize(segment);
+      let normal = vec2f(-dir.y, dir.x);
+
+      let tailWidth = halfSize * 0.8;
+      let headWidth = halfSize * 0.4;
+      let extraLength = min(segLen * 8.0, 0.08);
+
+      let start = p.prevP;
+      let end = p.p + dir * extraLength;
+
+      switch (vIdx) {
+        case 0u: { pos = start - normal * tailWidth; }
+        case 1u: { pos = end   - normal * headWidth; }
+        case 2u: { pos = end   + normal * headWidth; }
+        case 3u: { pos = start - normal * tailWidth; }
+        case 4u: { pos = end   + normal * headWidth; }
+        default: { pos = start + normal * tailWidth; }
+      }
+    }
   }
 
   var out: VertexOut;
-  out.pos = vec4f(p.p + offset, 0.0, 1.0);
-  out.color = vec4f(p.color * brightness, 1.0);
+  out.pos = vec4f(pos, 0.0, 1.0);
+  out.color = vec4f(p.color.rgb * brightness, p.color.a);
   return out;
 }
 
@@ -66,6 +95,8 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
   if (idx >= arrayLength(&particlesIn)) { return; }
 
   var p = particlesIn[idx];
+
+  p.prevP = p.p;
 
   let center = vec2f(0.0, 0.0);
   let toMouse = inputState.mousePos - p.p;
@@ -95,6 +126,18 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
       let tangent = vec2f(-radial.y, radial.x);
       p.v += tangent * (inputState.forceStrength * 0.4);
     }
+  }
+
+  if (inputState.simMode == 5.0) {
+    let dirToMouse = inputState.mousePos - p.p;
+    let distToMouse = length(dirToMouse);
+
+    if (distToMouse > 0.001) {
+      let normToMouse = normalize(dirToMouse);
+      p.v += normToMouse * (inputState.forceStrength * 0.35);
+    }
+
+    p.v *= 0.995;
   }
 
   if (mouseDist > 0.001) {
