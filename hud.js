@@ -256,7 +256,7 @@ class HUDManager {
     const section = document.createElement("div");
     section.className = "hud-section hud-info";
     const info = document.createElement("div");
-    info.innerHTML = `<small><strong>Mouse:</strong> Left Click = Attract | Right Click = Repel<br/><strong>Keyboard:</strong> 1-4 = Modes | ↑↓ = Force | ←→ = Damping<br/><strong>Controls:</strong> [ Smaller | ] Bigger | -/+ = Count | T = Trails | R = Reset | H = Toggle HUD</small>`;
+    info.innerHTML = `<small><strong>Mouse:</strong> Left Click = Attract | Right Click = Repel<br/><strong>Keyboard:</strong> 1-4 = Modes | ↑↓ = Force | ←→ = Damping<br/><strong>Shortcuts:</strong> [ Smaller | ] Bigger | -/+ = Count | T = Trails | R = Reset | H = Toggle HUD</small>`;
     section.appendChild(info);
     this.hudElement.appendChild(section);
   }
