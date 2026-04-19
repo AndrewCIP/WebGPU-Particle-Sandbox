@@ -262,10 +262,8 @@ class HUDManager {
   }
 
   changeParticleCount(delta) {
-    this.input.activeParticleCount = Math.max(
-      0,
-      Math.min(this.input.activeParticleCount + delta, this.input.maxActiveParticles)
-    );
+    const nextCount = this.input.activeParticleCount + delta;
+    this.input.activeParticleCount = Math.max(0, Math.min(Math.floor(nextCount), this.input.maxActiveParticles));
     this.updateValues();
   }
 
