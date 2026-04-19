@@ -1,6 +1,7 @@
 import Renderer from "./lib/Viz/2DRenderer.js";
 import FinalProjectParticleSystemObject from "./lib/Scene/FinalProjectParticleSystemObject.js";
 import HUDManager from "./hud.js";
+import { DEFAULT_PARTICLE_SHAPE_MASK, PARTICLE_SHAPES, toggleParticleShape } from "./particleShapes.js";
 
 const MAX_ACTIVE_PARTICLE_COUNT = 299; // Configurable runtime cap for active particles in the HUD.
 
@@ -34,6 +35,7 @@ async function init() {
     damping: 0.992,
     particleScale: 1.0,
     trailsEnabled: 0,
+    particleShapeMask: DEFAULT_PARTICLE_SHAPE_MASK,
     maxActiveParticles: MAX_ACTIVE_PARTICLE_COUNT,
     activeParticleCount: MAX_ACTIVE_PARTICLE_COUNT,
     hudVisible: true,
@@ -144,6 +146,13 @@ async function init() {
         input.activeParticleCount = Math.min(input.activeParticleCount + 1, input.maxActiveParticles);
         changed = true;
         break;
+      default: {
+        const shape = PARTICLE_SHAPES.find((entry) => entry.key === e.key.toLowerCase());
+        if (shape) {
+          input.particleShapeMask = toggleParticleShape(input.particleShapeMask, shape.bit);
+          changed = true;
+        }
+      }
     }
 
     if (changed) {

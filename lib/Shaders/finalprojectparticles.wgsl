@@ -15,11 +15,18 @@ struct InputState {
   damping: f32,
   particleScale: f32,
   trailsEnabled: f32,
+  particleShapeMask: f32,
+  _padding0: f32,
+  _padding1: f32,
+  _padding2: f32,
 };
 
 struct VertexOut {
   @builtin(position) pos: vec4f,
   @location(0) color: vec4f,
+  @location(1) localPos: vec2f,
+  @location(2) shapeId: f32,
+  @location(3) trailsFlag: f32,
 };
 
 @group(0) @binding(0) var<storage, read> particlesIn: array<Particle>;
@@ -37,6 +44,34 @@ fn quadCorner(vIdx: u32) -> vec2f {
   }
 }
 
+fn isShapeEnabled(mask: u32, shapeId: u32) -> bool {
+  return (mask & (1u << shapeId)) != 0u;
+}
+
+fn countActiveShapes(mask: u32) -> u32 {
+  var count = 0u;
+  for (var i = 0u; i < 8u; i = i + 1u) {
+    if (isShapeEnabled(mask, i)) {
+      count = count + 1u;
+    }
+  }
+  return max(count, 1u);
+}
+
+fn shapeForParticle(pIdx: u32, mask: u32) -> u32 {
+  let target = pIdx % countActiveShapes(mask);
+  var seen = 0u;
+  for (var i = 0u; i < 8u; i = i + 1u) {
+    if (isShapeEnabled(mask, i)) {
+      if (seen == target) {
+        return i;
+      }
+      seen = seen + 1u;
+    }
+  }
+  return 0u;
+}
+
 @vertex
 fn vertexMain(
   @builtin(vertex_index) vIdx: u32,
@@ -51,6 +86,7 @@ fn vertexMain(
 
   let corner = quadCorner(vIdx);
   var pos = p.p + corner * halfSize;
+  let shapeId = shapeForParticle(pIdx, u32(inputState.particleShapeMask));
 
   if (inputState.trailsEnabled == 1.0) {
     let segment = p.p - p.prevP;
@@ -81,12 +117,73 @@ fn vertexMain(
   var out: VertexOut;
   out.pos = vec4f(pos, 0.0, 1.0);
   out.color = vec4f(p.color.rgb * brightness, p.color.a);
+  out.localPos = corner;
+  out.shapeId = f32(shapeId);
+  out.trailsFlag = inputState.trailsEnabled;
   return out;
 }
 
+fn sdBox(p: vec2f, halfExtents: vec2f) -> f32 {
+  let d = abs(p) - halfExtents;
+  return length(max(d, vec2f(0.0))) + min(max(d.x, d.y), 0.0);
+}
+
+fn sdCircle(p: vec2f, radius: f32) -> f32 {
+  return length(p) - radius;
+}
+
+fn sdTriangle(pIn: vec2f) -> f32 {
+  var p = pIn;
+  let k = sqrt(3.0);
+  p.x = abs(p.x) - 1.0;
+  p.y = p.y + 1.0 / k;
+  if (p.x + k * p.y > 0.0) {
+    p = vec2f(p.x - k * p.y, -k * p.x - p.y) / 2.0;
+  }
+  p.x = p.x - clamp(p.x, -2.0, 0.0);
+  return -length(p) * sign(p.y);
+}
+
+fn sdStar(p: vec2f) -> f32 {
+  let angle = atan2(p.y, p.x);
+  let radius = length(p);
+  let modulation = 0.58 + 0.25 * cos(angle * 5.0);
+  return radius - modulation;
+}
+
 @fragment
-fn fragmentMain(@location(0) color: vec4f) -> @location(0) vec4f {
-  return color;
+fn fragmentMain(in: VertexOut) -> @location(0) vec4f {
+  if (in.trailsFlag == 1.0) {
+    return in.color;
+  }
+
+  let shapeId = u32(in.shapeId);
+  let p = in.localPos;
+
+  var sdf = 1.0;
+  if (shapeId == 0u || shapeId == 4u) {
+    sdf = sdBox(p, vec2f(0.9, 0.9));
+  } else if (shapeId == 1u || shapeId == 5u) {
+    sdf = sdCircle(p, 0.95);
+  } else if (shapeId == 2u || shapeId == 6u) {
+    sdf = sdTriangle(p * 1.05);
+  } else {
+    sdf = sdStar(p * 1.25);
+  }
+
+  let edge = 0.03;
+  let isHollow = shapeId >= 4u;
+  let alpha = select(
+    1.0 - smoothstep(0.0, edge, sdf),
+    1.0 - smoothstep(0.12 - edge, 0.12 + edge, abs(sdf)),
+    isHollow
+  );
+
+  if (alpha <= 0.01) {
+    discard;
+  }
+
+  return vec4f(in.color.rgb, in.color.a * alpha);
 }
 
 @compute @workgroup_size(256)
