@@ -1,5 +1,6 @@
 import Renderer from "./lib/Viz/2DRenderer.js";
 import FinalProjectParticleSystemObject from "./lib/Scene/FinalProjectParticleSystemObject.js";
+import HUDManager from "./hud.js";
 
 async function init() {
   const canvas = document.createElement("canvas");
@@ -33,31 +34,8 @@ async function init() {
     trailsEnabled: 0,
   };
 
-  function getModeName(mode) {
-    switch (mode) {
-      case 1: return "Static";
-      case 2: return "Gravity";
-      case 3: return "Explosion";
-      case 4: return "Orbit";
-      case 5: return "Cursor Follow";
-      default: return "Unknown";
-    }
-  }
-
-  function updateHUD() {
-    hud.innerHTML = `
-      <div><strong>Interactive WebGPU Particle Sandbox</strong></div>
-      <div>Mode: ${getModeName(input.simMode)}</div>
-      <div>Trails: ${input.trailsEnabled ? "ON" : "OFF"} (T)</div>
-      <div>Force Strength: ${input.forceStrength.toFixed(4)}</div>
-      <div>Damping: ${input.damping.toFixed(3)}</div>
-      <div>Particle Size: ${input.particleScale.toFixed(1)}</div>
-      <div style="margin-top:8px;">1 Static | 2 Gravity | 3 Explosion | 4 Orbit | 5 Cursor Follow</div>
-      <div>Left Click Attract | Right Click Repel</div>
-      <div>Arrow Up/Down = Force | Arrow Left/Right = Damping</div>
-      <div>[ Smaller | ] Bigger | T Trails</div>
-    `;
-  }
+  // Initialize the interactive HUD
+  const hudManager = new HUDManager(hud, input);
 
   canvas.addEventListener("mousemove", (e) => {
     input.x = (e.clientX / window.innerWidth) * 2 - 1;
@@ -82,50 +60,63 @@ async function init() {
   });
 
   window.addEventListener("keydown", (e) => {
+    let changed = false;
     switch (e.key) {
       case "1":
         input.simMode = 1;
+        changed = true;
         break;
       case "2":
         input.simMode = 2;
+        changed = true;
         break;
       case "3":
         input.simMode = 3;
+        changed = true;
         break;
       case "4":
         input.simMode = 4;
+        changed = true;
         break;
       case "5":
         input.simMode = 5;
+        changed = true;
         break;
       case "ArrowUp":
         input.forceStrength = Math.min(input.forceStrength + 0.0002, 0.01);
+        changed = true;
         break;
       case "ArrowDown":
         input.forceStrength = Math.max(input.forceStrength - 0.0002, 0.0002);
+        changed = true;
         break;
       case "ArrowRight":
         input.damping = Math.min(input.damping + 0.001, 0.999);
+        changed = true;
         break;
       case "ArrowLeft":
-        input.damping = Math.max(input.damping - 0.001, 0.960);
+        input.damping = Math.max(input.damping - 0.001, 0.96);
+        changed = true;
         break;
       case "[":
         input.particleScale = Math.max(input.particleScale - 0.1, 1.0);
+        changed = true;
         break;
       case "]":
         input.particleScale = Math.min(input.particleScale + 0.1, 5.0);
+        changed = true;
         break;
       case "t":
       case "T":
         input.trailsEnabled = input.trailsEnabled ? 0 : 1;
+        changed = true;
         break;
     }
 
-    updateHUD();
+    if (changed) {
+      hudManager.refresh();
+    }
   });
-
-  updateHUD();
 
   function loop() {
     particles.updateInput(input);
