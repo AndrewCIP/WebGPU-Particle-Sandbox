@@ -284,14 +284,12 @@ class HUDManager {
     const sizeValue = document.getElementById("size-value");
     const particleCountValue = document.getElementById("particle-count-value");
     const trailsBtn = document.getElementById("trails-toggle");
-    const hideHudBtn = document.getElementById("hide-hud");
 
     if (forceValue) forceValue.textContent = this.input.forceStrength.toFixed(4);
     if (dampingValue) dampingValue.textContent = this.input.damping.toFixed(3);
     if (sizeValue) sizeValue.textContent = this.input.particleScale.toFixed(1);
     if (particleCountValue) particleCountValue.textContent = this.input.activeParticleCount.toString();
     if (trailsBtn) trailsBtn.textContent = `T: Trails ${this.input.trailsEnabled ? "ON" : "OFF"}`;
-    if (hideHudBtn) hideHudBtn.textContent = "H: Hide HUD";
     this.toggleHUD(this.input.hudVisible);
     this.updateModeHighlight();
   }
