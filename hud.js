@@ -290,12 +290,12 @@ class HUDManager {
     if (sizeValue) sizeValue.textContent = this.input.particleScale.toFixed(1);
     if (particleCountValue) particleCountValue.textContent = this.input.activeParticleCount.toString();
     if (trailsBtn) trailsBtn.textContent = `T: Trails ${this.input.trailsEnabled ? "ON" : "OFF"}`;
-    this.toggleHUD(this.input.hudVisible);
     this.updateModeHighlight();
   }
 
   refresh() {
     this.updateValues();
+    this.toggleHUD(this.input.hudVisible);
   }
 }
 
