@@ -2,6 +2,8 @@ import Renderer from "./lib/Viz/2DRenderer.js";
 import FinalProjectParticleSystemObject from "./lib/Scene/FinalProjectParticleSystemObject.js";
 import HUDManager from "./hud.js";
 
+const MAX_ACTIVE_PARTICLE_COUNT = 299; // Configurable runtime cap for active particles in the HUD.
+
 async function init() {
   const canvas = document.createElement("canvas");
   canvas.id = "renderCanvas";
@@ -32,6 +34,18 @@ async function init() {
     damping: 0.992,
     particleScale: 1.0,
     trailsEnabled: 0,
+    maxActiveParticles: MAX_ACTIVE_PARTICLE_COUNT,
+    activeParticleCount: MAX_ACTIVE_PARTICLE_COUNT,
+    hudVisible: true,
+    resetRequested: false,
+  };
+  input.resetParticles = () => {
+    input.resetRequested = true;
+  };
+  input.consumeResetRequest = () => {
+    const requested = input.resetRequested;
+    input.resetRequested = false;
+    return requested;
   };
 
   // Initialize the interactive HUD
@@ -109,6 +123,25 @@ async function init() {
       case "t":
       case "T":
         input.trailsEnabled = input.trailsEnabled ? 0 : 1;
+        changed = true;
+        break;
+      case "r":
+      case "R":
+        input.resetParticles();
+        changed = true;
+        break;
+      case "h":
+      case "H":
+        input.hudVisible = !input.hudVisible;
+        changed = true;
+        break;
+      case "-":
+        input.activeParticleCount = Math.max(input.activeParticleCount - 1, 0);
+        changed = true;
+        break;
+      case "+":
+      case "=":
+        input.activeParticleCount = Math.min(input.activeParticleCount + 1, input.maxActiveParticles);
         changed = true;
         break;
     }

@@ -31,6 +31,14 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
+#show-hud-toggle {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 11;
+  display: none;
+}
+
 .hud-title {
   font-size: 14px;
   font-weight: bold;
