@@ -2,7 +2,7 @@ import Renderer from "./lib/Viz/2DRenderer.js";
 import FinalProjectParticleSystemObject from "./lib/Scene/FinalProjectParticleSystemObject.js";
 import HUDManager from "./hud.js";
 
-const MAX_ACTIVE_PARTICLES = 299;
+const MAX_ACTIVE_PARTICLE_COUNT = 299;
 
 async function init() {
   const canvas = document.createElement("canvas");
@@ -34,13 +34,18 @@ async function init() {
     damping: 0.992,
     particleScale: 1.0,
     trailsEnabled: 0,
-    maxActiveParticles: MAX_ACTIVE_PARTICLES,
-    activeParticleCount: MAX_ACTIVE_PARTICLES,
+    maxActiveParticles: MAX_ACTIVE_PARTICLE_COUNT,
+    activeParticleCount: MAX_ACTIVE_PARTICLE_COUNT,
     hudVisible: true,
     resetRequested: false,
   };
   input.resetParticles = () => {
     input.resetRequested = true;
+  };
+  input.consumeResetRequest = () => {
+    const requested = input.resetRequested;
+    input.resetRequested = false;
+    return requested;
   };
 
   // Initialize the interactive HUD
