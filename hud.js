@@ -69,8 +69,8 @@ class HUDManager {
 
     this.createModeSection();
     this.createControlSection();
-    this.createUtilitySection();
     this.createInfoSection();
+    this.createHideHudRow();
   }
 
   createShowHudToggle() {
@@ -137,27 +137,25 @@ class HUDManager {
 
     const header = document.createElement("div");
     header.className = "hud-section-header";
-    header.textContent = "CONTROLS";
+    header.textContent = "PARTICLES";
     section.appendChild(header);
 
-    // Force Strength
-    const forceRow = document.createElement("div");
-    forceRow.className = "hud-control-row";
-    forceRow.appendChild(this.createLabel("Force Strength:"));
-    forceRow.appendChild(new HUDButton("force-dec", "↓", () => {
-      this.input.forceStrength = Math.max(this.input.forceStrength - 0.0002, 0.0002);
-      this.updateValues();
+    // Particle Count
+    const countRow = document.createElement("div");
+    countRow.className = "hud-control-row";
+    countRow.appendChild(this.createLabel("Particle Count:"));
+    countRow.appendChild(new HUDButton("particle-count-dec", "-", () => {
+      this.changeParticleCount(-1);
     }).create());
-    const forceValue = document.createElement("span");
-    forceValue.id = "force-value";
-    forceValue.className = "hud-value";
-    forceValue.textContent = this.input.forceStrength.toFixed(4);
-    forceRow.appendChild(forceValue);
-    forceRow.appendChild(new HUDButton("force-inc", "↑", () => {
-      this.input.forceStrength = Math.min(this.input.forceStrength + 0.0002, 0.01);
-      this.updateValues();
+    const countValue = document.createElement("span");
+    countValue.id = "particle-count-value";
+    countValue.className = "hud-value";
+    countValue.textContent = this.input.activeParticleCount.toString();
+    countRow.appendChild(countValue);
+    countRow.appendChild(new HUDButton("particle-count-inc", "+", () => {
+      this.changeParticleCount(1);
     }).create());
-    section.appendChild(forceRow);
+    section.appendChild(countRow);
 
     // Particle Size
     const sizeRow = document.createElement("div");
@@ -178,48 +176,14 @@ class HUDManager {
     }).create());
     section.appendChild(sizeRow);
 
-    // Particle Count
-    const countRow = document.createElement("div");
-    countRow.className = "hud-control-row";
-    countRow.appendChild(this.createLabel("Particle Count:"));
-    countRow.appendChild(new HUDButton("particle-count-dec", "-", () => {
-      this.changeParticleCount(-1);
-    }).create());
-    const countValue = document.createElement("span");
-    countValue.id = "particle-count-value";
-    countValue.className = "hud-value";
-    countValue.textContent = this.input.activeParticleCount.toString();
-    countRow.appendChild(countValue);
-    countRow.appendChild(new HUDButton("particle-count-inc", "+", () => {
-      this.changeParticleCount(1);
-    }).create());
-    section.appendChild(countRow);
-
-    // Damping
-    const dampingRow = document.createElement("div");
-    dampingRow.className = "hud-control-row";
-    dampingRow.appendChild(this.createLabel("Damping:"));
-    dampingRow.appendChild(new HUDButton("damping-dec", "←", () => {
-      this.input.damping = Math.max(this.input.damping - 0.001, 0.96);
-      this.updateValues();
-    }).create());
-    const dampingValue = document.createElement("span");
-    dampingValue.id = "damping-value";
-    dampingValue.className = "hud-value";
-    dampingValue.textContent = this.input.damping.toFixed(3);
-    dampingRow.appendChild(dampingValue);
-    dampingRow.appendChild(new HUDButton("damping-inc", "→", () => {
-      this.input.damping = Math.min(this.input.damping + 0.001, 0.999);
-      this.updateValues();
-    }).create());
-    section.appendChild(dampingRow);
-
     // Colors
     const colorsRow = document.createElement("div");
-    colorsRow.className = "hud-control-row";
-    colorsRow.appendChild(this.createLabel("Colors:"));
+    colorsRow.className = "hud-control-row hud-control-stack";
+    const colorsLabel = this.createLabel("Colors:");
+    colorsLabel.classList.add("hud-label-full");
+    colorsRow.appendChild(colorsLabel);
     const colorButtonContainer = document.createElement("div");
-    colorButtonContainer.className = "hud-button-row colors-row";
+    colorButtonContainer.className = "colors-row";
     const colors = [
       { id: "color-0", label: "Rainbow", value: 0 },
       { id: "color-1", label: "Fire", value: 1 },
@@ -247,40 +211,36 @@ class HUDManager {
     colorsRow.appendChild(colorButtonContainer);
     section.appendChild(colorsRow);
 
-    // Trails
-    const trailsRow = document.createElement("div");
-    trailsRow.className = "hud-control-row";
-    trailsRow.appendChild(new HUDButton("trails-toggle", "T: Trails OFF", () => {
+    // Utility
+    const utilityRow = document.createElement("div");
+    utilityRow.className = "hud-control-row hud-control-stack";
+    const utilityLabel = this.createLabel("Utility:");
+    utilityLabel.classList.add("hud-label-full");
+    utilityRow.appendChild(utilityLabel);
+    const utilityButtons = document.createElement("div");
+    utilityButtons.className = "hud-button-row utility-buttons";
+    utilityButtons.appendChild(new HUDButton("trails-toggle", "T: Trails OFF", () => {
       this.input.trailsEnabled = this.input.trailsEnabled ? 0 : 1;
       this.updateValues();
     }).create());
-    section.appendChild(trailsRow);
+    utilityButtons.appendChild(new HUDButton("reset-particles", "R: Reset", () => {
+      this.input.resetParticles();
+      this.updateValues();
+    }).create());
+    utilityRow.appendChild(utilityButtons);
+    section.appendChild(utilityRow);
 
     this.hudElement.appendChild(section);
     this.updateColorHighlight();
   }
 
-  createUtilitySection() {
-    const section = document.createElement("div");
-    section.className = "hud-section";
-
-    const header = document.createElement("div");
-    header.className = "hud-section-header";
-    header.textContent = "UTILITY";
-    section.appendChild(header);
-
-    const utilityRow = document.createElement("div");
-    utilityRow.className = "hud-control-row";
-    utilityRow.appendChild(new HUDButton("reset-particles", "R: Reset", () => {
-      this.input.resetParticles();
-      this.updateValues();
-    }).create());
-    utilityRow.appendChild(new HUDButton("hide-hud", "H: Hide HUD", () => {
+  createHideHudRow() {
+    const hideRow = document.createElement("div");
+    hideRow.className = "hud-control-row hud-bottom-row";
+    hideRow.appendChild(new HUDButton("hide-hud", "H: Hide HUD", () => {
       this.toggleHUD(false);
     }).create());
-    section.appendChild(utilityRow);
-
-    this.hudElement.appendChild(section);
+    this.hudElement.appendChild(hideRow);
   }
 
   createLabel(text) {
@@ -315,14 +275,10 @@ class HUDManager {
   }
 
   updateValues() {
-    const forceValue = document.getElementById("force-value");
-    const dampingValue = document.getElementById("damping-value");
     const sizeValue = document.getElementById("size-value");
     const particleCountValue = document.getElementById("particle-count-value");
     const trailsBtn = document.getElementById("trails-toggle");
 
-    if (forceValue) forceValue.textContent = this.input.forceStrength.toFixed(4);
-    if (dampingValue) dampingValue.textContent = this.input.damping.toFixed(3);
     if (sizeValue) sizeValue.textContent = this.input.particleScale.toFixed(1);
     if (particleCountValue) particleCountValue.textContent = this.input.activeParticleCount.toString();
     if (trailsBtn) trailsBtn.textContent = `T: Trails ${this.input.trailsEnabled ? "ON" : "OFF"}`;

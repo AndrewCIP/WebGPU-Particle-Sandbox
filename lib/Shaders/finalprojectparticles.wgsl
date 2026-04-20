@@ -28,11 +28,13 @@ const FIRE_BASE_X: f32 = 0.0;
 const FIRE_BASE_Y: f32 = -0.8;
 const FIRE_RESPAWN_Y: f32 = 1.05;
 const FIRE_MAX_SPREAD: f32 = 0.7;
+const FIRE_BASE_RADIUS: f32 = 0.1;
 const FIRE_SEED_MULTIPLIER: f32 = 12.9898;
 const FIRE_SPAWN_OFFSET_SEED: f32 = 91.7;
 const FIRE_SPAWN_VELOCITY_SEED: f32 = 43.3;
 const FIRE_VELOCITY_X_SEED_OFFSET: f32 = 17.0;
 const FIRE_VELOCITY_Y_SEED_OFFSET: f32 = 31.0;
+const FIRE_ANGLE_SEED_OFFSET: f32 = 113.0;
 const FIRE_LIFE_SEED_OFFSET: f32 = 53.0;
 const FIRE_FLICKER_SEED: f32 = 0.13;
 const FIRE_RISE_SEED: f32 = 0.07;
@@ -52,8 +54,12 @@ const RAIN_COLOR_SEED: f32 = 0.11;
 const RAIN_GRAVITY: f32 = 0.0009;
 const RAIN_MIN_LIFE: f32 = 75.0;
 const RAIN_LIFE_RANGE: f32 = 90.0;
+const RAIN_BOUNCE_DAMPING: f32 = 0.45;
+const RAIN_BOUNCE_X_JITTER: f32 = 0.0012;
+const RAIN_BOUNCE_SEED: f32 = 0.29;
 const RAIN_COLOR_DARK: vec3f = vec3f(0.2, 0.55, 0.95);
 const RAIN_COLOR_LIGHT: vec3f = vec3f(0.45, 0.9, 1.0);
+const TAU: f32 = 6.28318530718;
 
 @group(0) @binding(0) var<storage, read> particlesIn: array<Particle>;
 @group(0) @binding(1) var<storage, read_write> particlesOut: array<Particle>;
@@ -177,25 +183,32 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
     p.life -= 1.0;
     let isLifeExpired = p.life <= 0.0;
     let isTooHigh = p.p.y > FIRE_RESPAWN_Y;
-    let isTooFarFromCenter = abs(p.p.x - FIRE_BASE_X) > FIRE_MAX_SPREAD;
+    let rise = clamp((p.p.y - FIRE_BASE_Y) / 1.8, 0.0, 1.0);
+    let coneHalfWidth = mix(FIRE_BASE_RADIUS, FIRE_MAX_SPREAD, rise);
+    let isTooFarFromCenter = abs(p.p.x - FIRE_BASE_X) > coneHalfWidth;
 
     if (isLifeExpired || isTooHigh || isTooFarFromCenter) {
-      let spawnOffset = (rand(idxSeed + FIRE_SPAWN_OFFSET_SEED) * 2.0 - 1.0) * 0.08;
-      p.p = vec2f(FIRE_BASE_X + spawnOffset, FIRE_BASE_Y);
+      let spawnRadius = sqrt(rand(idxSeed + FIRE_SPAWN_OFFSET_SEED)) * FIRE_BASE_RADIUS;
+      let spawnAngle = rand(idxSeed + FIRE_ANGLE_SEED_OFFSET) * TAU;
+      let spawnOffset = vec2f(cos(spawnAngle), sin(spawnAngle)) * spawnRadius;
+      p.p = vec2f(FIRE_BASE_X, FIRE_BASE_Y) + spawnOffset;
       p.prevP = p.p;
       p.v = vec2f(
-        (rand(idxSeed + FIRE_VELOCITY_X_SEED_OFFSET + FIRE_SPAWN_VELOCITY_SEED) * 2.0 - 1.0) * 0.006,
-        0.01 + rand(idxSeed + FIRE_VELOCITY_Y_SEED_OFFSET) * 0.01
+        spawnOffset.x * 0.035 + (rand(idxSeed + FIRE_VELOCITY_X_SEED_OFFSET + FIRE_SPAWN_VELOCITY_SEED) * 2.0 - 1.0) * 0.004,
+        0.006 + abs(spawnOffset.y) * 0.01 + rand(idxSeed + FIRE_VELOCITY_Y_SEED_OFFSET) * 0.008
       );
       p.life = FIRE_MIN_LIFE + rand(idxSeed + FIRE_LIFE_SEED_OFFSET) * FIRE_LIFE_RANGE;
     }
 
     let flicker = (rand(idxSeed + p.life * FIRE_FLICKER_SEED) * 2.0 - 1.0) * 0.0008;
-    p.v.x += flicker;
+    let conePush = (p.p.x - FIRE_BASE_X) * (0.00028 + rise * 0.00035);
+    p.v.x += conePush + flicker;
     p.v.y += 0.00055 + rand(idxSeed + p.life * FIRE_RISE_SEED) * 0.00035;
+    if (p.p.y < FIRE_BASE_Y + FIRE_BASE_RADIUS * 1.6) {
+      p.v += (vec2f(FIRE_BASE_X, FIRE_BASE_Y) - p.p) * 0.015;
+    }
     p.v *= 0.985;
 
-    let rise = clamp((p.p.y - FIRE_BASE_Y) / 1.8, 0.0, 1.0);
     let lifeFade = clamp(p.life / 125.0, 0.0, 1.0);
     if (colorMode == 1u) {
       p.color = vec4f(
@@ -213,7 +226,15 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
     p.v.x *= 0.995;
     p.v.y *= 0.999;
 
-    if (p.life <= 0.0 || p.p.y < -1.0) {
+    let hasBounced = p.size < 0.95;
+    if (!hasBounced && p.p.y <= -1.0 && p.v.y < 0.0) {
+      p.p.y = -1.0;
+      p.v.y = abs(p.v.y) * RAIN_BOUNCE_DAMPING;
+      p.v.x += (rand(idxSeed + p.life * RAIN_BOUNCE_SEED) * 2.0 - 1.0) * RAIN_BOUNCE_X_JITTER;
+      p.size = 0.85;
+    }
+
+    if (p.life <= 0.0 || p.p.y < -1.08 || abs(p.p.x) > 1.08 || p.p.y > 1.08) {
       let spawnXRand = rand(idxSeed + RAIN_SPAWN_X_SEED);
       let spawnYRand = rand(idxSeed + RAIN_SPAWN_Y_SEED);
       let velocityRandX = rand(idxSeed + RAIN_VELOCITY_X_SEED_OFFSET);
@@ -228,6 +249,7 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
         -(0.01 + velocityRandY * 0.015)
       );
       p.life = RAIN_MIN_LIFE + lifeRand * RAIN_LIFE_RANGE;
+      p.size = 1.0;
     }
 
     let rainColorMix = rand(idxSeed + p.life * RAIN_COLOR_SEED);
@@ -239,7 +261,15 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
     }
   }
 
-  if (colorMode == 1u && inputState.simMode != 5.0) {
+  if (colorMode == 0u) {
+    let phase = f32(idx) * 0.031;
+    p.color = vec4f(
+      0.5 + 0.5 * sin(phase),
+      0.5 + 0.5 * sin(phase + TAU / 3.0),
+      0.5 + 0.5 * sin(phase + 2.0 * TAU / 3.0),
+      1.0
+    );
+  } else if (colorMode == 1u && inputState.simMode != 5.0) {
     let warmMix = rand(f32(idx) * FIRE_SEED_MULTIPLIER + 9.0);
     p.color = vec4f(mix(FIRE_COLOR_BASE, FIRE_COLOR_TIP, warmMix), 1.0);
   } else if (colorMode == 2u && inputState.simMode != 6.0) {
