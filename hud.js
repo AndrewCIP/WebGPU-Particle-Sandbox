@@ -69,8 +69,8 @@ class HUDManager {
     this.hudElement.appendChild(title);
 
     this.createModeSection();
-    this.createPropertiesSection();
     this.createParticlesSection();
+    this.createPropertiesSection();
     this.createInfoSection();
     this.createHideHUDControl();
   }
@@ -222,18 +222,6 @@ class HUDManager {
     }).create());
     section.appendChild(sizeRow);
 
-    const controlsRow = document.createElement("div");
-    controlsRow.className = "hud-control-row";
-    controlsRow.appendChild(new HUDButton("reset-particles", "R: Reset", () => {
-      this.input.resetParticles();
-      this.updateValues();
-    }).create());
-    controlsRow.appendChild(new HUDButton("trails-toggle", "T: Trails OFF", () => {
-      this.input.trailsEnabled = this.input.trailsEnabled ? 0 : 1;
-      this.updateValues();
-    }).create());
-    section.appendChild(controlsRow);
-
     const shapeRow = document.createElement("div");
     shapeRow.className = "hud-control-row";
     shapeRow.appendChild(this.createLabel("Shapes:"));
@@ -258,6 +246,19 @@ class HUDManager {
 
     shapeRow.appendChild(shapeButtons);
     section.appendChild(shapeRow);
+
+    const controlsRow = document.createElement("div");
+    controlsRow.className = "hud-control-row";
+    controlsRow.appendChild(this.createLabel("Utility:"));
+    controlsRow.appendChild(new HUDButton("reset-particles", "R: Reset", () => {
+      this.input.resetParticles();
+      this.updateValues();
+    }).create());
+    controlsRow.appendChild(new HUDButton("trails-toggle", "T: Trails OFF", () => {
+      this.input.trailsEnabled = this.input.trailsEnabled ? 0 : 1;
+      this.updateValues();
+    }).create());
+    section.appendChild(controlsRow);
 
     this.hudElement.appendChild(section);
     this.updateShapeHighlight();
