@@ -37,6 +37,10 @@ fn quadCorner(vIdx: u32) -> vec2f {
   }
 }
 
+fn rand(seed: f32) -> f32 {
+  return fract(sin(seed) * 43758.5453123);
+}
+
 @vertex
 fn vertexMain(
   @builtin(vertex_index) vIdx: u32,
@@ -129,15 +133,60 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
   }
 
   if (inputState.simMode == 5.0) {
-    let dirToMouse = inputState.mousePos - p.p;
-    let distToMouse = length(dirToMouse);
+    let baseX = 0.0;
+    let baseY = -0.8;
+    let idxSeed = f32(idx) * 12.9898;
 
-    if (distToMouse > 0.001) {
-      let normToMouse = normalize(dirToMouse);
-      p.v += normToMouse * (inputState.forceStrength * 0.35);
+    p.life -= 1.0;
+
+    if (p.life <= 0.0 || p.p.y > 1.05 || abs(p.p.x - baseX) > 0.7) {
+      let spawnOffset = (rand(idxSeed + p.prevP.x * 91.7) * 2.0 - 1.0) * 0.08;
+      p.p = vec2f(baseX + spawnOffset, baseY);
+      p.prevP = p.p;
+      p.v = vec2f(
+        (rand(idxSeed + 17.0 + p.prevP.y * 43.3) * 2.0 - 1.0) * 0.006,
+        0.01 + rand(idxSeed + 31.0) * 0.01
+      );
+      p.life = 45.0 + rand(idxSeed + 53.0) * 80.0;
     }
 
-    p.v *= 0.995;
+    let flicker = (rand(idxSeed + p.life * 0.13) * 2.0 - 1.0) * 0.0008;
+    p.v.x += flicker;
+    p.v.y += 0.00055 + rand(idxSeed + p.life * 0.07) * 0.00035;
+    p.v *= 0.985;
+
+    let rise = clamp((p.p.y - baseY) / 1.8, 0.0, 1.0);
+    let lifeFade = clamp(p.life / 125.0, 0.0, 1.0);
+    p.color = vec4f(
+      mix(vec3f(1.0, 0.25, 0.02), vec3f(1.0, 0.82, 0.2), 1.0 - rise),
+      clamp((1.0 - rise) * lifeFade, 0.0, 1.0)
+    );
+  }
+
+  if (inputState.simMode == 6.0) {
+    let idxSeed = f32(idx) * 78.233;
+
+    p.life -= 1.0;
+    p.v.y -= 0.0009 + inputState.forceStrength * 0.25;
+    p.v.x *= 0.995;
+    p.v.y *= 0.999;
+
+    if (p.life <= 0.0 || p.p.y < -1.0) {
+      let spawnX = rand(idxSeed + p.prevP.y * 17.0) * 2.0 - 1.0;
+      let spawnY = 1.0 + rand(idxSeed + p.prevP.x * 29.0) * 0.08;
+      p.p = vec2f(spawnX, spawnY);
+      p.prevP = p.p;
+      p.v = vec2f(
+        (rand(idxSeed + 41.0) * 2.0 - 1.0) * 0.0015,
+        -(0.01 + rand(idxSeed + 67.0) * 0.015)
+      );
+      p.life = 75.0 + rand(idxSeed + 79.0) * 90.0;
+    }
+
+    p.color = vec4f(
+      mix(vec3f(0.2, 0.55, 0.95), vec3f(0.45, 0.9, 1.0), rand(idxSeed + p.life * 0.11)),
+      0.7
+    );
   }
 
   if (mouseDist > 0.001) {
@@ -155,22 +204,24 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
   p.p += p.v;
   p.v *= inputState.damping;
 
-  if (p.p.x > 1.0) {
-    p.p.x = 1.0;
-    p.v.x = -p.v.x;
-  }
-  if (p.p.x < -1.0) {
-    p.p.x = -1.0;
-    p.v.x = -p.v.x;
-  }
+  if (inputState.simMode != 5.0 && inputState.simMode != 6.0) {
+    if (p.p.x > 1.0) {
+      p.p.x = 1.0;
+      p.v.x = -p.v.x;
+    }
+    if (p.p.x < -1.0) {
+      p.p.x = -1.0;
+      p.v.x = -p.v.x;
+    }
 
-  if (p.p.y > 1.0) {
-    p.p.y = 1.0;
-    p.v.y = -p.v.y;
-  }
-  if (p.p.y < -1.0) {
-    p.p.y = -1.0;
-    p.v.y = -p.v.y;
+    if (p.p.y > 1.0) {
+      p.p.y = 1.0;
+      p.v.y = -p.v.y;
+    }
+    if (p.p.y < -1.0) {
+      p.p.y = -1.0;
+      p.v.y = -p.v.y;
+    }
   }
 
   particlesOut[idx] = p;
