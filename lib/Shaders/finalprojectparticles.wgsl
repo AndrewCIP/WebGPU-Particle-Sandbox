@@ -15,6 +15,8 @@ struct InputState {
   damping: f32,
   particleScale: f32,
   trailsEnabled: f32,
+  colorMode: f32,
+  _padding: vec3f,
 };
 
 struct VertexOut {
@@ -71,6 +73,10 @@ fn quadCorner(vIdx: u32) -> vec2f {
 fn rand(seed: f32) -> f32 {
   // Deterministic pseudo-random hash for shader variation; outputs values in [0, 1).
   return fract(sin(seed) * 43758.5453123);
+}
+
+fn selectedColorMode() -> u32 {
+  return u32(clamp(inputState.colorMode, 0.0, 7.0));
 }
 
 @vertex
@@ -131,6 +137,7 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
   if (idx >= arrayLength(&particlesIn)) { return; }
 
   var p = particlesIn[idx];
+  let colorMode = selectedColorMode();
 
   p.prevP = p.p;
 
@@ -190,10 +197,12 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
 
     let rise = clamp((p.p.y - FIRE_BASE_Y) / 1.8, 0.0, 1.0);
     let lifeFade = clamp(p.life / 125.0, 0.0, 1.0);
-    p.color = vec4f(
-      mix(FIRE_COLOR_BASE, FIRE_COLOR_TIP, 1.0 - rise),
-      clamp((1.0 - rise) * lifeFade, 0.0, 1.0)
-    );
+    if (colorMode == 1u) {
+      p.color = vec4f(
+        mix(FIRE_COLOR_BASE, FIRE_COLOR_TIP, 1.0 - rise),
+        clamp((1.0 - rise) * lifeFade, 0.0, 1.0)
+      );
+    }
   }
 
   if (inputState.simMode == 6.0) {
@@ -222,10 +231,30 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
     }
 
     let rainColorMix = rand(idxSeed + p.life * RAIN_COLOR_SEED);
-    p.color = vec4f(
-      mix(RAIN_COLOR_DARK, RAIN_COLOR_LIGHT, rainColorMix),
-      0.7
-    );
+    if (colorMode == 2u) {
+      p.color = vec4f(
+        mix(RAIN_COLOR_DARK, RAIN_COLOR_LIGHT, rainColorMix),
+        0.7
+      );
+    }
+  }
+
+  if (colorMode == 1u && inputState.simMode != 5.0) {
+    let warmMix = rand(f32(idx) * FIRE_SEED_MULTIPLIER + 9.0);
+    p.color = vec4f(mix(FIRE_COLOR_BASE, FIRE_COLOR_TIP, warmMix), 1.0);
+  } else if (colorMode == 2u && inputState.simMode != 6.0) {
+    let coolMix = rand(f32(idx) * RAIN_SEED_MULTIPLIER + 21.0);
+    p.color = vec4f(mix(RAIN_COLOR_DARK, RAIN_COLOR_LIGHT, coolMix), 1.0);
+  } else if (colorMode == 3u) {
+    p.color = vec4f(0.9, 0.9, 0.9, 1.0);
+  } else if (colorMode == 4u) {
+    p.color = vec4f(0.2, 0.8, 0.2, 1.0);
+  } else if (colorMode == 5u) {
+    p.color = vec4f(1.0, 0.2, 0.8, 1.0);
+  } else if (colorMode == 6u) {
+    p.color = vec4f(0.8, 0.2, 1.0, 1.0);
+  } else if (colorMode == 7u) {
+    p.color = vec4f(1.0, 1.0, 0.2, 1.0);
   }
 
   if (mouseDist > 0.001) {
