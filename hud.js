@@ -70,7 +70,6 @@ class HUDManager {
     this.createModeSection();
     this.createParticlesSection();
     this.createPropertiesSection();
-    this.createUtilitySection();
     this.createInfoSection();
     this.createHideHudRow();
   }
@@ -213,6 +212,25 @@ class HUDManager {
     colorsRow.appendChild(colorButtonContainer);
     section.appendChild(colorsRow);
 
+    // Utility
+    const utilityRow = document.createElement("div");
+    utilityRow.className = "hud-control-row hud-control-stack";
+    const utilityLabel = this.createLabel("Utility:");
+    utilityLabel.classList.add("hud-label-full");
+    utilityRow.appendChild(utilityLabel);
+    const utilityButtons = document.createElement("div");
+    utilityButtons.className = "hud-button-row utility-buttons";
+    utilityButtons.appendChild(new HUDButton("trails-toggle", "T: Trails OFF", () => {
+      this.input.trailsEnabled = this.input.trailsEnabled ? 0 : 1;
+      this.updateValues();
+    }).create());
+    utilityButtons.appendChild(new HUDButton("reset-particles", "R: Reset", () => {
+      this.input.resetParticles();
+      this.updateValues();
+    }).create());
+    utilityRow.appendChild(utilityButtons);
+    section.appendChild(utilityRow);
+
     this.hudElement.appendChild(section);
     this.updateColorHighlight();
   }
@@ -263,37 +281,6 @@ class HUDManager {
       this.updateValues();
     }).create());
     section.appendChild(dampingRow);
-
-    this.hudElement.appendChild(section);
-  }
-
-  createUtilitySection() {
-    const section = document.createElement("div");
-    section.className = "hud-section";
-
-    const header = document.createElement("div");
-    header.className = "hud-section-header";
-    header.textContent = "UTILITY";
-    section.appendChild(header);
-
-    // Utility
-    const utilityRow = document.createElement("div");
-    utilityRow.className = "hud-control-row hud-control-stack";
-    const utilityLabel = this.createLabel("Utility:");
-    utilityLabel.classList.add("hud-label-full");
-    utilityRow.appendChild(utilityLabel);
-    const utilityButtons = document.createElement("div");
-    utilityButtons.className = "hud-button-row utility-buttons";
-    utilityButtons.appendChild(new HUDButton("trails-toggle", "T: Trails OFF", () => {
-      this.input.trailsEnabled = this.input.trailsEnabled ? 0 : 1;
-      this.updateValues();
-    }).create());
-    utilityButtons.appendChild(new HUDButton("reset-particles", "R: Reset", () => {
-      this.input.resetParticles();
-      this.updateValues();
-    }).create());
-    utilityRow.appendChild(utilityButtons);
-    section.appendChild(utilityRow);
 
     this.hudElement.appendChild(section);
   }
