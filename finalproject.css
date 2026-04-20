@@ -155,9 +155,3 @@ body {
 .hud-info strong {
   color: rgba(150, 200, 255, 1);
 }
-
-.hud-footer {
-  margin-top: 8px;
-  display: flex;
-  justify-content: flex-start;
-}

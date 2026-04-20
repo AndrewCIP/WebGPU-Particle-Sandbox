@@ -1,6 +1,5 @@
-import { PARTICLE_SHAPES, normalizeParticleShapeMask, toggleParticleShape } from "./particleShapes.js";
-
 // HUD Button Management System
+
 class HUDButton {
   constructor(id, label, callback, group = null) {
     this.id = id;
@@ -50,7 +49,6 @@ class HUDManager {
     this.input = input;
     this.buttons = {};
     this.modeButtons = {};
-    this.shapeButtons = {};
     this.showHudButton = null;
     this.createShowHudToggle();
     this.updateHUD();
@@ -61,7 +59,6 @@ class HUDManager {
     this.hudElement.innerHTML = "";
     this.buttons = {};
     this.modeButtons = {};
-    this.shapeButtons = {};
 
     const title = document.createElement("div");
     title.className = "hud-title";
@@ -69,10 +66,9 @@ class HUDManager {
     this.hudElement.appendChild(title);
 
     this.createModeSection();
-    this.createParticlesSection();
-    this.createPropertiesSection();
+    this.createControlSection();
+    this.createUtilitySection();
     this.createInfoSection();
-    this.createHideHUDControl();
   }
 
   createShowHudToggle() {
@@ -131,15 +127,16 @@ class HUDManager {
     });
   }
 
-  createPropertiesSection() {
+  createControlSection() {
     const section = document.createElement("div");
     section.className = "hud-section";
 
     const header = document.createElement("div");
     header.className = "hud-section-header";
-    header.textContent = "PROPERTIES";
+    header.textContent = "CONTROLS";
     section.appendChild(header);
 
+    // Force Strength
     const forceRow = document.createElement("div");
     forceRow.className = "hud-control-row";
     forceRow.appendChild(this.createLabel("Force Strength:"));
@@ -158,52 +155,7 @@ class HUDManager {
     }).create());
     section.appendChild(forceRow);
 
-    const dampingRow = document.createElement("div");
-    dampingRow.className = "hud-control-row";
-    dampingRow.appendChild(this.createLabel("Damping:"));
-    dampingRow.appendChild(new HUDButton("damping-dec", "←", () => {
-      this.input.damping = Math.max(this.input.damping - 0.001, 0.96);
-      this.updateValues();
-    }).create());
-    const dampingValue = document.createElement("span");
-    dampingValue.id = "damping-value";
-    dampingValue.className = "hud-value";
-    dampingValue.textContent = this.input.damping.toFixed(3);
-    dampingRow.appendChild(dampingValue);
-    dampingRow.appendChild(new HUDButton("damping-inc", "→", () => {
-      this.input.damping = Math.min(this.input.damping + 0.001, 0.999);
-      this.updateValues();
-    }).create());
-    section.appendChild(dampingRow);
-
-    this.hudElement.appendChild(section);
-  }
-
-  createParticlesSection() {
-    const section = document.createElement("div");
-    section.className = "hud-section";
-
-    const header = document.createElement("div");
-    header.className = "hud-section-header";
-    header.textContent = "PARTICLES";
-    section.appendChild(header);
-
-    const countRow = document.createElement("div");
-    countRow.className = "hud-control-row";
-    countRow.appendChild(this.createLabel("Particle Count:"));
-    countRow.appendChild(new HUDButton("particle-count-dec", "-", () => {
-      this.changeParticleCount(-1);
-    }).create());
-    const countValue = document.createElement("span");
-    countValue.id = "particle-count-value";
-    countValue.className = "hud-value";
-    countValue.textContent = this.input.activeParticleCount.toString();
-    countRow.appendChild(countValue);
-    countRow.appendChild(new HUDButton("particle-count-inc", "+", () => {
-      this.changeParticleCount(1);
-    }).create());
-    section.appendChild(countRow);
-
+    // Particle Size
     const sizeRow = document.createElement("div");
     sizeRow.className = "hud-control-row";
     sizeRow.appendChild(this.createLabel("Particle Size:"));
@@ -222,67 +174,75 @@ class HUDManager {
     }).create());
     section.appendChild(sizeRow);
 
-    const shapeRow = document.createElement("div");
-    shapeRow.className = "hud-control-row";
-    shapeRow.appendChild(this.createLabel("Shapes:"));
-    const shapeButtons = document.createElement("div");
-    shapeButtons.className = "hud-button-row";
+    // Particle Count
+    const countRow = document.createElement("div");
+    countRow.className = "hud-control-row";
+    countRow.appendChild(this.createLabel("Particle Count:"));
+    countRow.appendChild(new HUDButton("particle-count-dec", "-", () => {
+      this.changeParticleCount(-1);
+    }).create());
+    const countValue = document.createElement("span");
+    countValue.id = "particle-count-value";
+    countValue.className = "hud-value";
+    countValue.textContent = this.input.activeParticleCount.toString();
+    countRow.appendChild(countValue);
+    countRow.appendChild(new HUDButton("particle-count-inc", "+", () => {
+      this.changeParticleCount(1);
+    }).create());
+    section.appendChild(countRow);
 
-    this.input.particleShapeMask = normalizeParticleShapeMask(this.input.particleShapeMask);
-    PARTICLE_SHAPES.forEach((shape) => {
-      const button = new HUDButton(
-        shape.id,
-        shape.label,
-        () => {
-          this.input.particleShapeMask = toggleParticleShape(this.input.particleShapeMask, shape.bit);
-          this.updateShapeHighlight();
-        },
-        "shapes"
-      );
-      this.shapeButtons[shape.bit] = button;
-      this.buttons[shape.id] = button;
-      shapeButtons.appendChild(button.create());
-    });
-
-    shapeRow.appendChild(shapeButtons);
-    section.appendChild(shapeRow);
-
-    const utilityLabelRow = document.createElement("div");
-    utilityLabelRow.className = "hud-control-row";
-    utilityLabelRow.appendChild(this.createLabel("Utility:"));
-    section.appendChild(utilityLabelRow);
-
-    const controlsRow = document.createElement("div");
-    controlsRow.className = "hud-button-row";
-    controlsRow.appendChild(new HUDButton("reset-particles", "R: Reset", () => {
-      this.input.resetParticles();
+    // Damping
+    const dampingRow = document.createElement("div");
+    dampingRow.className = "hud-control-row";
+    dampingRow.appendChild(this.createLabel("Damping:"));
+    dampingRow.appendChild(new HUDButton("damping-dec", "←", () => {
+      this.input.damping = Math.max(this.input.damping - 0.001, 0.96);
       this.updateValues();
     }).create());
-    controlsRow.appendChild(new HUDButton("trails-toggle", "T: Trails OFF", () => {
+    const dampingValue = document.createElement("span");
+    dampingValue.id = "damping-value";
+    dampingValue.className = "hud-value";
+    dampingValue.textContent = this.input.damping.toFixed(3);
+    dampingRow.appendChild(dampingValue);
+    dampingRow.appendChild(new HUDButton("damping-inc", "→", () => {
+      this.input.damping = Math.min(this.input.damping + 0.001, 0.999);
+      this.updateValues();
+    }).create());
+    section.appendChild(dampingRow);
+
+    // Trails
+    const trailsRow = document.createElement("div");
+    trailsRow.className = "hud-control-row";
+    trailsRow.appendChild(new HUDButton("trails-toggle", "T: Trails OFF", () => {
       this.input.trailsEnabled = this.input.trailsEnabled ? 0 : 1;
       this.updateValues();
     }).create());
-    section.appendChild(controlsRow);
+    section.appendChild(trailsRow);
 
     this.hudElement.appendChild(section);
-    this.updateShapeHighlight();
   }
 
-  updateShapeHighlight() {
-    const normalizedMask = normalizeParticleShapeMask(this.input.particleShapeMask);
-    this.input.particleShapeMask = normalizedMask;
-    Object.entries(this.shapeButtons).forEach(([bit, btn]) => {
-      btn.setActive((normalizedMask & parseInt(bit, 10)) !== 0);
-    });
-  }
+  createUtilitySection() {
+    const section = document.createElement("div");
+    section.className = "hud-section";
 
-  createHideHUDControl() {
-    const footer = document.createElement("div");
-    footer.className = "hud-footer";
-    footer.appendChild(new HUDButton("hide-hud", "H: Hide HUD", () => {
+    const header = document.createElement("div");
+    header.className = "hud-section-header";
+    header.textContent = "UTILITY";
+    section.appendChild(header);
+
+    const utilityRow = document.createElement("div");
+    utilityRow.className = "hud-control-row";
+    utilityRow.appendChild(new HUDButton("reset-particles", "R: Reset", () => {
+      this.input.resetParticles();
+      this.updateValues();
+    }).create());
+    utilityRow.appendChild(new HUDButton("hide-hud", "H: Hide HUD", () => {
       this.toggleHUD(false);
     }).create());
-    this.hudElement.appendChild(footer);
+    section.appendChild(utilityRow);
+
+    this.hudElement.appendChild(section);
   }
 
   createLabel(text) {
@@ -296,7 +256,7 @@ class HUDManager {
     const section = document.createElement("div");
     section.className = "hud-section hud-info";
     const info = document.createElement("div");
-    info.innerHTML = `<small><strong>Mouse:</strong> Left Click = Attract | Right Click = Repel<br/><strong>Keyboard:</strong> 1-4 = Modes | ↑↓ = Force | ←→ = Damping<br/><strong>Particles:</strong> [ ] = Size | -/+ = Count | T = Trails | R = Reset<br/><strong>Shapes:</strong> Q/W/E/Z = Solid | A/S/D/X = Hollow | H = Toggle HUD</small>`;
+    info.innerHTML = `<small><strong>Mouse:</strong> Left Click = Attract | Right Click = Repel<br/><strong>Keyboard:</strong> 1-4 = Modes | ↑↓ = Force | ←→ = Damping<br/><strong>Shortcuts:</strong> [ Smaller | ] Bigger | -/+ = Count | T = Trails | R = Reset | H = Toggle HUD</small>`;
     section.appendChild(info);
     this.hudElement.appendChild(section);
   }
@@ -329,7 +289,6 @@ class HUDManager {
     if (particleCountValue) particleCountValue.textContent = this.input.activeParticleCount.toString();
     if (trailsBtn) trailsBtn.textContent = `T: Trails ${this.input.trailsEnabled ? "ON" : "OFF"}`;
     this.updateModeHighlight();
-    this.updateShapeHighlight();
   }
 
   refresh() {
