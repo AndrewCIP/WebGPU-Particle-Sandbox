@@ -22,4 +22,3 @@ export function toggleParticleShape(mask, bit) {
   const nextMask = currentMask ^ bit;
   return nextMask === 0 ? currentMask : nextMask;
 }
-

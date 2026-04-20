@@ -16,9 +16,9 @@ struct InputState {
   particleScale: f32,
   trailsEnabled: f32,
   particleShapeMask: f32,
-  _padding0: f32,
-  _padding1: f32,
-  _padding2: f32,
+  _paddingAlignment0: f32,
+  _paddingAlignment1: f32,
+  _paddingAlignment2: f32,
 };
 
 struct VertexOut {
@@ -172,10 +172,11 @@ fn fragmentMain(in: VertexOut) -> @location(0) vec4f {
   }
 
   let edge = 0.03;
+  let hollowThickness = 0.12;
   let isHollow = shapeId >= 4u;
   let alpha = select(
     1.0 - smoothstep(0.0, edge, sdf),
-    1.0 - smoothstep(0.12 - edge, 0.12 + edge, abs(sdf)),
+    1.0 - smoothstep(hollowThickness - edge, hollowThickness + edge, abs(sdf)),
     isHollow
   );
 

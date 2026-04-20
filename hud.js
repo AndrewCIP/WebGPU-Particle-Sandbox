@@ -334,4 +334,3 @@ class HUDManager {
 }
 
 export default HUDManager;
-
