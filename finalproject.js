@@ -2,7 +2,7 @@ import Renderer from "./lib/Viz/2DRenderer.js";
 import FinalProjectParticleSystemObject from "./lib/Scene/FinalProjectParticleSystemObject.js";
 import HUDManager from "./hud.js";
 
-const MAX_ACTIVE_PARTICLE_COUNT = 299; // Configurable runtime cap for active particles in the HUD.
+const MAX_ACTIVE_PARTICLE_COUNT = 999; // Configurable runtime cap for active particles in the HUD.
 
 async function init() {
   const canvas = document.createElement("canvas");
@@ -36,7 +36,7 @@ async function init() {
     trailsEnabled: 0,
     colorMode: 0,
     maxActiveParticles: MAX_ACTIVE_PARTICLE_COUNT,
-    activeParticleCount: MAX_ACTIVE_PARTICLE_COUNT,
+    activeParticleCount: 333,
     hudVisible: true,
     resetRequested: false,
   };

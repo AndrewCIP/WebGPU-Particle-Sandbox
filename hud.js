@@ -68,7 +68,9 @@ class HUDManager {
     this.hudElement.appendChild(title);
 
     this.createModeSection();
-    this.createControlSection();
+    this.createParticlesSection();
+    this.createPropertiesSection();
+    this.createUtilitySection();
     this.createInfoSection();
     this.createHideHudRow();
   }
@@ -131,7 +133,7 @@ class HUDManager {
     });
   }
 
-  createControlSection() {
+  createParticlesSection() {
     const section = document.createElement("div");
     section.className = "hud-section";
 
@@ -211,6 +213,69 @@ class HUDManager {
     colorsRow.appendChild(colorButtonContainer);
     section.appendChild(colorsRow);
 
+    this.hudElement.appendChild(section);
+    this.updateColorHighlight();
+  }
+
+  createPropertiesSection() {
+    const section = document.createElement("div");
+    section.className = "hud-section";
+
+    const header = document.createElement("div");
+    header.className = "hud-section-header";
+    header.textContent = "PROPERTIES";
+    section.appendChild(header);
+
+    // Force Strength
+    const forceRow = document.createElement("div");
+    forceRow.className = "hud-control-row";
+    forceRow.appendChild(this.createLabel("Force Strength:"));
+    forceRow.appendChild(new HUDButton("force-dec", "↓", () => {
+      this.input.forceStrength = Math.max(this.input.forceStrength - 0.0002, 0.0002);
+      this.updateValues();
+    }).create());
+    const forceValue = document.createElement("span");
+    forceValue.id = "force-value";
+    forceValue.className = "hud-value";
+    forceValue.textContent = this.input.forceStrength.toFixed(4);
+    forceRow.appendChild(forceValue);
+    forceRow.appendChild(new HUDButton("force-inc", "↑", () => {
+      this.input.forceStrength = Math.min(this.input.forceStrength + 0.0002, 0.01);
+      this.updateValues();
+    }).create());
+    section.appendChild(forceRow);
+
+    // Damping
+    const dampingRow = document.createElement("div");
+    dampingRow.className = "hud-control-row";
+    dampingRow.appendChild(this.createLabel("Damping:"));
+    dampingRow.appendChild(new HUDButton("damping-dec", "←", () => {
+      this.input.damping = Math.max(this.input.damping - 0.001, 0.96);
+      this.updateValues();
+    }).create());
+    const dampingValue = document.createElement("span");
+    dampingValue.id = "damping-value";
+    dampingValue.className = "hud-value";
+    dampingValue.textContent = this.input.damping.toFixed(3);
+    dampingRow.appendChild(dampingValue);
+    dampingRow.appendChild(new HUDButton("damping-inc", "→", () => {
+      this.input.damping = Math.min(this.input.damping + 0.001, 0.999);
+      this.updateValues();
+    }).create());
+    section.appendChild(dampingRow);
+
+    this.hudElement.appendChild(section);
+  }
+
+  createUtilitySection() {
+    const section = document.createElement("div");
+    section.className = "hud-section";
+
+    const header = document.createElement("div");
+    header.className = "hud-section-header";
+    header.textContent = "UTILITY";
+    section.appendChild(header);
+
     // Utility
     const utilityRow = document.createElement("div");
     utilityRow.className = "hud-control-row hud-control-stack";
@@ -231,7 +296,6 @@ class HUDManager {
     section.appendChild(utilityRow);
 
     this.hudElement.appendChild(section);
-    this.updateColorHighlight();
   }
 
   createHideHudRow() {
@@ -277,10 +341,14 @@ class HUDManager {
   updateValues() {
     const sizeValue = document.getElementById("size-value");
     const particleCountValue = document.getElementById("particle-count-value");
+    const forceValue = document.getElementById("force-value");
+    const dampingValue = document.getElementById("damping-value");
     const trailsBtn = document.getElementById("trails-toggle");
 
     if (sizeValue) sizeValue.textContent = this.input.particleScale.toFixed(1);
     if (particleCountValue) particleCountValue.textContent = this.input.activeParticleCount.toString();
+    if (forceValue) forceValue.textContent = this.input.forceStrength.toFixed(4);
+    if (dampingValue) dampingValue.textContent = this.input.damping.toFixed(3);
     if (trailsBtn) trailsBtn.textContent = `T: Trails ${this.input.trailsEnabled ? "ON" : "OFF"}`;
     this.updateModeHighlight();
     this.updateColorHighlight();
