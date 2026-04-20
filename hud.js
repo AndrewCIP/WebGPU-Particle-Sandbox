@@ -222,9 +222,9 @@ class HUDManager {
     colorButtonContainer.className = "hud-button-row colors-row";
     const colors = [
       { id: "color-0", label: "🌈", value: 0 },
-      { id: "color-1", label: "O/R", value: 1 },
+      { id: "color-1", label: "Fire", value: 1 },
       { id: "color-2", label: "Blue", value: 2 },
-      { id: "color-3", label: "W/G", value: 3 },
+      { id: "color-3", label: "White", value: 3 },
       { id: "color-4", label: "Green", value: 4 },
       { id: "color-5", label: "Pink", value: 5 },
       { id: "color-6", label: "Purple", value: 6 },
