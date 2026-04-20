@@ -28,10 +28,14 @@ const FIRE_RESPAWN_Y: f32 = 1.05;
 const FIRE_MAX_SPREAD: f32 = 0.7;
 const FIRE_MIN_LIFE: f32 = 45.0;
 const FIRE_LIFE_RANGE: f32 = 80.0;
+const FIRE_COLOR_BASE: vec3f = vec3f(1.0, 0.25, 0.02);
+const FIRE_COLOR_TIP: vec3f = vec3f(1.0, 0.82, 0.2);
 
 const RAIN_SPAWN_TOP: f32 = 1.0;
 const RAIN_MIN_LIFE: f32 = 75.0;
 const RAIN_LIFE_RANGE: f32 = 90.0;
+const RAIN_COLOR_DARK: vec3f = vec3f(0.2, 0.55, 0.95);
+const RAIN_COLOR_LIGHT: vec3f = vec3f(0.45, 0.9, 1.0);
 
 @group(0) @binding(0) var<storage, read> particlesIn: array<Particle>;
 @group(0) @binding(1) var<storage, read_write> particlesOut: array<Particle>;
@@ -147,8 +151,11 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
     let idxSeed = f32(idx) * 12.9898;
 
     p.life -= 1.0;
+    let isLifeExpired = p.life <= 0.0;
+    let isTooHigh = p.p.y > FIRE_RESPAWN_Y;
+    let isTooFarFromCenter = abs(p.p.x - FIRE_BASE_X) > FIRE_MAX_SPREAD;
 
-    if (p.life <= 0.0 || p.p.y > FIRE_RESPAWN_Y || abs(p.p.x - FIRE_BASE_X) > FIRE_MAX_SPREAD) {
+    if (isLifeExpired || isTooHigh || isTooFarFromCenter) {
       let spawnOffset = (rand(idxSeed + p.prevP.x * 91.7) * 2.0 - 1.0) * 0.08;
       p.p = vec2f(FIRE_BASE_X + spawnOffset, FIRE_BASE_Y);
       p.prevP = p.p;
@@ -167,7 +174,7 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
     let rise = clamp((p.p.y - FIRE_BASE_Y) / 1.8, 0.0, 1.0);
     let lifeFade = clamp(p.life / 125.0, 0.0, 1.0);
     p.color = vec4f(
-      mix(vec3f(1.0, 0.25, 0.02), vec3f(1.0, 0.82, 0.2), 1.0 - rise),
+      mix(FIRE_COLOR_BASE, FIRE_COLOR_TIP, 1.0 - rise),
       clamp((1.0 - rise) * lifeFade, 0.0, 1.0)
     );
   }
@@ -193,7 +200,7 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
     }
 
     p.color = vec4f(
-      mix(vec3f(0.2, 0.55, 0.95), vec3f(0.45, 0.9, 1.0), rand(idxSeed + p.life * 0.11)),
+      mix(RAIN_COLOR_DARK, RAIN_COLOR_LIGHT, rand(idxSeed + p.life * 0.11)),
       0.7
     );
   }
