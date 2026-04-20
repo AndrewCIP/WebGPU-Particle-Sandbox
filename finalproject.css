@@ -93,11 +93,11 @@ body {
 
 .hud-control-stack {
   flex-direction: column;
-  align-items: flex-start;
   width: 100%;
 }
 
 .colors-row {
+  width: 100%;
   display: grid;
   grid-template-columns: repeat(4, max-content);
   gap: 4px;
@@ -110,6 +110,7 @@ body {
 }
 
 .utility-buttons {
+  width: 100%;
   justify-content: flex-start;
 }
 
@@ -145,6 +146,15 @@ body {
   gap: 6px;
   margin: 6px 0;
   flex-wrap: wrap;
+}
+
+.hud-control-row.hud-control-stack {
+  align-items: flex-start;
+}
+
+.colors-row,
+.utility-buttons {
+  align-self: flex-start;
 }
 
 .hud-label {

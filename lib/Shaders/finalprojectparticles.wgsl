@@ -262,7 +262,7 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
   }
 
   if (colorMode == 0u) {
-    let phase = f32(idx) * 0.031 + inputState._padding.x * 0.07;
+    let phase = f32(idx) * 0.031;
     p.color = vec4f(
       0.5 + 0.5 * sin(phase),
       0.5 + 0.5 * sin(phase + TAU / 3.0),
