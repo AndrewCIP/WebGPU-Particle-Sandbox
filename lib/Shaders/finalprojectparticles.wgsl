@@ -15,7 +15,7 @@ struct InputState {
   damping: f32,
   particleScale: f32,
   trailsEnabled: f32,
-  _paddingAlignment0: f32,
+  _padding: f32,
 };
 
 struct VertexOut {
