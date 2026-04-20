@@ -173,11 +173,11 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
     let isTooFarFromCenter = abs(p.p.x - FIRE_BASE_X) > FIRE_MAX_SPREAD;
 
     if (isLifeExpired || isTooHigh || isTooFarFromCenter) {
-      let spawnOffset = (rand(idxSeed + p.prevP.x * FIRE_SPAWN_OFFSET_SEED) * 2.0 - 1.0) * 0.08;
+      let spawnOffset = (rand(idxSeed + FIRE_SPAWN_OFFSET_SEED) * 2.0 - 1.0) * 0.08;
       p.p = vec2f(FIRE_BASE_X + spawnOffset, FIRE_BASE_Y);
       p.prevP = p.p;
       p.v = vec2f(
-        (rand(idxSeed + FIRE_VELOCITY_X_SEED_OFFSET + p.prevP.y * FIRE_SPAWN_VELOCITY_SEED) * 2.0 - 1.0) * 0.006,
+        (rand(idxSeed + FIRE_VELOCITY_X_SEED_OFFSET + FIRE_SPAWN_VELOCITY_SEED) * 2.0 - 1.0) * 0.006,
         0.01 + rand(idxSeed + FIRE_VELOCITY_Y_SEED_OFFSET) * 0.01
       );
       p.life = FIRE_MIN_LIFE + rand(idxSeed + FIRE_LIFE_SEED_OFFSET) * FIRE_LIFE_RANGE;
@@ -205,8 +205,8 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
     p.v.y *= 0.999;
 
     if (p.life <= 0.0 || p.p.y < -1.0) {
-      let spawnXRand = rand(idxSeed + p.prevP.y * RAIN_SPAWN_X_SEED);
-      let spawnYRand = rand(idxSeed + p.prevP.x * RAIN_SPAWN_Y_SEED);
+      let spawnXRand = rand(idxSeed + RAIN_SPAWN_X_SEED);
+      let spawnYRand = rand(idxSeed + RAIN_SPAWN_Y_SEED);
       let velocityRandX = rand(idxSeed + RAIN_VELOCITY_X_SEED_OFFSET);
       let velocityRandY = rand(idxSeed + RAIN_VELOCITY_Y_SEED_OFFSET);
       let lifeRand = rand(idxSeed + RAIN_LIFE_SEED_OFFSET);
