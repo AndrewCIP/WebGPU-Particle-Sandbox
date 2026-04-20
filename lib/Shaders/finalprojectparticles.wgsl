@@ -27,6 +27,13 @@ const FIRE_BASE_Y: f32 = -0.8;
 const FIRE_RESPAWN_Y: f32 = 1.05;
 const FIRE_MAX_SPREAD: f32 = 0.7;
 const FIRE_SEED_MULTIPLIER: f32 = 12.9898;
+const FIRE_SPAWN_OFFSET_SEED: f32 = 91.7;
+const FIRE_SPAWN_VELOCITY_SEED: f32 = 43.3;
+const FIRE_VELOCITY_X_SEED_OFFSET: f32 = 17.0;
+const FIRE_VELOCITY_Y_SEED_OFFSET: f32 = 31.0;
+const FIRE_LIFE_SEED_OFFSET: f32 = 53.0;
+const FIRE_FLICKER_SEED: f32 = 0.13;
+const FIRE_RISE_SEED: f32 = 0.07;
 const FIRE_MIN_LIFE: f32 = 45.0;
 const FIRE_LIFE_RANGE: f32 = 80.0;
 const FIRE_COLOR_BASE: vec3f = vec3f(1.0, 0.25, 0.02);
@@ -34,6 +41,13 @@ const FIRE_COLOR_TIP: vec3f = vec3f(1.0, 0.82, 0.2);
 
 const RAIN_SPAWN_TOP: f32 = 1.0;
 const RAIN_SEED_MULTIPLIER: f32 = 78.233;
+const RAIN_SPAWN_X_SEED: f32 = 17.0;
+const RAIN_SPAWN_Y_SEED: f32 = 29.0;
+const RAIN_VELOCITY_X_SEED_OFFSET: f32 = 41.0;
+const RAIN_VELOCITY_Y_SEED_OFFSET: f32 = 67.0;
+const RAIN_LIFE_SEED_OFFSET: f32 = 79.0;
+const RAIN_COLOR_SEED: f32 = 0.11;
+const RAIN_GRAVITY: f32 = 0.0009;
 const RAIN_MIN_LIFE: f32 = 75.0;
 const RAIN_LIFE_RANGE: f32 = 90.0;
 const RAIN_COLOR_DARK: vec3f = vec3f(0.2, 0.55, 0.95);
@@ -159,19 +173,19 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
     let isTooFarFromCenter = abs(p.p.x - FIRE_BASE_X) > FIRE_MAX_SPREAD;
 
     if (isLifeExpired || isTooHigh || isTooFarFromCenter) {
-      let spawnOffset = (rand(idxSeed + p.prevP.x * 91.7) * 2.0 - 1.0) * 0.08;
+      let spawnOffset = (rand(idxSeed + p.prevP.x * FIRE_SPAWN_OFFSET_SEED) * 2.0 - 1.0) * 0.08;
       p.p = vec2f(FIRE_BASE_X + spawnOffset, FIRE_BASE_Y);
       p.prevP = p.p;
       p.v = vec2f(
-        (rand(idxSeed + 17.0 + p.prevP.y * 43.3) * 2.0 - 1.0) * 0.006,
-        0.01 + rand(idxSeed + 31.0) * 0.01
+        (rand(idxSeed + FIRE_VELOCITY_X_SEED_OFFSET + p.prevP.y * FIRE_SPAWN_VELOCITY_SEED) * 2.0 - 1.0) * 0.006,
+        0.01 + rand(idxSeed + FIRE_VELOCITY_Y_SEED_OFFSET) * 0.01
       );
-      p.life = FIRE_MIN_LIFE + rand(idxSeed + 53.0) * FIRE_LIFE_RANGE;
+      p.life = FIRE_MIN_LIFE + rand(idxSeed + FIRE_LIFE_SEED_OFFSET) * FIRE_LIFE_RANGE;
     }
 
-    let flicker = (rand(idxSeed + p.life * 0.13) * 2.0 - 1.0) * 0.0008;
+    let flicker = (rand(idxSeed + p.life * FIRE_FLICKER_SEED) * 2.0 - 1.0) * 0.0008;
     p.v.x += flicker;
-    p.v.y += 0.00055 + rand(idxSeed + p.life * 0.07) * 0.00035;
+    p.v.y += 0.00055 + rand(idxSeed + p.life * FIRE_RISE_SEED) * 0.00035;
     p.v *= 0.985;
 
     let rise = clamp((p.p.y - FIRE_BASE_Y) / 1.8, 0.0, 1.0);
@@ -186,16 +200,16 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
     let idxSeed = f32(idx) * RAIN_SEED_MULTIPLIER;
 
     p.life -= 1.0;
-    p.v.y -= 0.0009 + inputState.forceStrength * 0.25;
+    p.v.y -= RAIN_GRAVITY;
     p.v.x *= 0.995;
     p.v.y *= 0.999;
 
     if (p.life <= 0.0 || p.p.y < -1.0) {
-      let spawnXRand = rand(idxSeed + p.prevP.y * 17.0);
-      let spawnYRand = rand(idxSeed + p.prevP.x * 29.0);
-      let velocityRandX = rand(idxSeed + 41.0);
-      let velocityRandY = rand(idxSeed + 67.0);
-      let lifeRand = rand(idxSeed + 79.0);
+      let spawnXRand = rand(idxSeed + p.prevP.y * RAIN_SPAWN_X_SEED);
+      let spawnYRand = rand(idxSeed + p.prevP.x * RAIN_SPAWN_Y_SEED);
+      let velocityRandX = rand(idxSeed + RAIN_VELOCITY_X_SEED_OFFSET);
+      let velocityRandY = rand(idxSeed + RAIN_VELOCITY_Y_SEED_OFFSET);
+      let lifeRand = rand(idxSeed + RAIN_LIFE_SEED_OFFSET);
       let spawnX = spawnXRand * 2.0 - 1.0;
       let spawnY = RAIN_SPAWN_TOP + spawnYRand * 0.08;
       p.p = vec2f(spawnX, spawnY);
@@ -207,7 +221,7 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
       p.life = RAIN_MIN_LIFE + lifeRand * RAIN_LIFE_RANGE;
     }
 
-    let rainColorMix = rand(idxSeed + p.life * 0.11);
+    let rainColorMix = rand(idxSeed + p.life * RAIN_COLOR_SEED);
     p.color = vec4f(
       mix(RAIN_COLOR_DARK, RAIN_COLOR_LIGHT, rainColorMix),
       0.7
