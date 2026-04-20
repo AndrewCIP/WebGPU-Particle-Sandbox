@@ -1,5 +1,3 @@
-import { PARTICLE_SHAPES, normalizeParticleShapeMask, toggleParticleShape } from "./particleShapes.js";
-
 // HUD Button Management System
 class HUDButton {
   constructor(id, label, callback, group = null) {
@@ -50,7 +48,6 @@ class HUDManager {
     this.input = input;
     this.buttons = {};
     this.modeButtons = {};
-    this.shapeButtons = {};
     this.showHudButton = null;
     this.createShowHudToggle();
     this.updateHUD();
@@ -61,7 +58,6 @@ class HUDManager {
     this.hudElement.innerHTML = "";
     this.buttons = {};
     this.modeButtons = {};
-    this.shapeButtons = {};
 
     const title = document.createElement("div");
     title.className = "hud-title";
@@ -222,31 +218,6 @@ class HUDManager {
     }).create());
     section.appendChild(sizeRow);
 
-    const shapeRow = document.createElement("div");
-    shapeRow.className = "hud-control-row";
-    shapeRow.appendChild(this.createLabel("Shapes:"));
-    const shapeButtons = document.createElement("div");
-    shapeButtons.className = "hud-button-row";
-
-    this.input.particleShapeMask = normalizeParticleShapeMask(this.input.particleShapeMask);
-    PARTICLE_SHAPES.forEach((shape) => {
-      const button = new HUDButton(
-        shape.id,
-        shape.label,
-        () => {
-          this.input.particleShapeMask = toggleParticleShape(this.input.particleShapeMask, shape.bit);
-          this.updateShapeHighlight();
-        },
-        "shapes"
-      );
-      this.shapeButtons[shape.bit] = button;
-      this.buttons[shape.id] = button;
-      shapeButtons.appendChild(button.create());
-    });
-
-    shapeRow.appendChild(shapeButtons);
-    section.appendChild(shapeRow);
-
     const utilityLabelRow = document.createElement("div");
     utilityLabelRow.className = "hud-control-row";
     utilityLabelRow.appendChild(this.createLabel("Utility:"));
@@ -265,15 +236,6 @@ class HUDManager {
     section.appendChild(controlsRow);
 
     this.hudElement.appendChild(section);
-    this.updateShapeHighlight();
-  }
-
-  updateShapeHighlight() {
-    const normalizedMask = normalizeParticleShapeMask(this.input.particleShapeMask);
-    this.input.particleShapeMask = normalizedMask;
-    Object.entries(this.shapeButtons).forEach(([bit, btn]) => {
-      btn.setActive((normalizedMask & parseInt(bit, 10)) !== 0);
-    });
   }
 
   createHideHUDControl() {
@@ -296,7 +258,7 @@ class HUDManager {
     const section = document.createElement("div");
     section.className = "hud-section hud-info";
     const info = document.createElement("div");
-    info.innerHTML = `<small><strong>Mouse:</strong> Left Click = Attract | Right Click = Repel<br/><strong>Keyboard:</strong> 1-4 = Modes | ↑↓ = Force | ←→ = Damping<br/><strong>Particles:</strong> [ ] = Size | -/+ = Count | T = Trails | R = Reset<br/><strong>Shapes:</strong> Q/W/E/Z = Solid | A/S/D/X = Hollow | H = Toggle HUD</small>`;
+    info.innerHTML = `<small><strong>Mouse:</strong> Left Click = Attract | Right Click = Repel<br/><strong>Keyboard:</strong> 1-4 = Modes | ↑↓ = Force | ←→ = Damping<br/><strong>Particles:</strong> [ ] = Size | -/+ = Count | T = Trails | R = Reset | H = Toggle HUD</small>`;
     section.appendChild(info);
     this.hudElement.appendChild(section);
   }
@@ -329,7 +291,6 @@ class HUDManager {
     if (particleCountValue) particleCountValue.textContent = this.input.activeParticleCount.toString();
     if (trailsBtn) trailsBtn.textContent = `T: Trails ${this.input.trailsEnabled ? "ON" : "OFF"}`;
     this.updateModeHighlight();
-    this.updateShapeHighlight();
   }
 
   refresh() {
