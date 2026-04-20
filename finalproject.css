@@ -94,20 +94,29 @@ body {
 .hud-control-stack {
   flex-direction: column;
   align-items: flex-start;
+  width: 100%;
 }
 
 .colors-row {
-  width: 100%;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, max-content);
   gap: 4px;
+  justify-content: start;
 }
 
 .colors-row .hud-button {
-  width: 100%;
+  min-width: fit-content;
+  padding: 6px 10px;
+}
+
+.utility-buttons {
+  justify-content: flex-start;
+}
+
+.hud-label-full {
   min-width: 0;
-  text-align: center;
-  padding: 6px 4px;
+  width: 100%;
+  text-align: left;
 }
 
 .hud-button:hover {
