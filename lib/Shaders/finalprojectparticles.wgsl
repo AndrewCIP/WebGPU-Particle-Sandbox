@@ -22,6 +22,37 @@ struct VertexOut {
   @location(0) color: vec4f,
 };
 
+const FIRE_BASE_X: f32 = 0.0;
+const FIRE_BASE_Y: f32 = -0.8;
+const FIRE_RESPAWN_Y: f32 = 1.05;
+const FIRE_MAX_SPREAD: f32 = 0.7;
+const FIRE_SEED_MULTIPLIER: f32 = 12.9898;
+const FIRE_SPAWN_OFFSET_SEED: f32 = 91.7;
+const FIRE_SPAWN_VELOCITY_SEED: f32 = 43.3;
+const FIRE_VELOCITY_X_SEED_OFFSET: f32 = 17.0;
+const FIRE_VELOCITY_Y_SEED_OFFSET: f32 = 31.0;
+const FIRE_LIFE_SEED_OFFSET: f32 = 53.0;
+const FIRE_FLICKER_SEED: f32 = 0.13;
+const FIRE_RISE_SEED: f32 = 0.07;
+const FIRE_MIN_LIFE: f32 = 45.0;
+const FIRE_LIFE_RANGE: f32 = 80.0;
+const FIRE_COLOR_BASE: vec3f = vec3f(1.0, 0.25, 0.02);
+const FIRE_COLOR_TIP: vec3f = vec3f(1.0, 0.82, 0.2);
+
+const RAIN_SPAWN_TOP: f32 = 1.0;
+const RAIN_SEED_MULTIPLIER: f32 = 78.233;
+const RAIN_SPAWN_X_SEED: f32 = 17.0;
+const RAIN_SPAWN_Y_SEED: f32 = 29.0;
+const RAIN_VELOCITY_X_SEED_OFFSET: f32 = 41.0;
+const RAIN_VELOCITY_Y_SEED_OFFSET: f32 = 67.0;
+const RAIN_LIFE_SEED_OFFSET: f32 = 79.0;
+const RAIN_COLOR_SEED: f32 = 0.11;
+const RAIN_GRAVITY: f32 = 0.0009;
+const RAIN_MIN_LIFE: f32 = 75.0;
+const RAIN_LIFE_RANGE: f32 = 90.0;
+const RAIN_COLOR_DARK: vec3f = vec3f(0.2, 0.55, 0.95);
+const RAIN_COLOR_LIGHT: vec3f = vec3f(0.45, 0.9, 1.0);
+
 @group(0) @binding(0) var<storage, read> particlesIn: array<Particle>;
 @group(0) @binding(1) var<storage, read_write> particlesOut: array<Particle>;
 @group(0) @binding(2) var<uniform> inputState: InputState;
@@ -35,6 +66,11 @@ fn quadCorner(vIdx: u32) -> vec2f {
     case 4u: { return vec2f( 1.0,  1.0); }
     default: { return vec2f(-1.0,  1.0); }
   }
+}
+
+fn rand(seed: f32) -> f32 {
+  // Deterministic pseudo-random hash for shader variation; outputs values in [0, 1).
+  return fract(sin(seed) * 43758.5453123);
 }
 
 @vertex
@@ -129,15 +165,67 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
   }
 
   if (inputState.simMode == 5.0) {
-    let dirToMouse = inputState.mousePos - p.p;
-    let distToMouse = length(dirToMouse);
+    let idxSeed = f32(idx) * FIRE_SEED_MULTIPLIER;
 
-    if (distToMouse > 0.001) {
-      let normToMouse = normalize(dirToMouse);
-      p.v += normToMouse * (inputState.forceStrength * 0.35);
+    p.life -= 1.0;
+    let isLifeExpired = p.life <= 0.0;
+    let isTooHigh = p.p.y > FIRE_RESPAWN_Y;
+    let isTooFarFromCenter = abs(p.p.x - FIRE_BASE_X) > FIRE_MAX_SPREAD;
+
+    if (isLifeExpired || isTooHigh || isTooFarFromCenter) {
+      let spawnOffset = (rand(idxSeed + FIRE_SPAWN_OFFSET_SEED) * 2.0 - 1.0) * 0.08;
+      p.p = vec2f(FIRE_BASE_X + spawnOffset, FIRE_BASE_Y);
+      p.prevP = p.p;
+      p.v = vec2f(
+        (rand(idxSeed + FIRE_VELOCITY_X_SEED_OFFSET + FIRE_SPAWN_VELOCITY_SEED) * 2.0 - 1.0) * 0.006,
+        0.01 + rand(idxSeed + FIRE_VELOCITY_Y_SEED_OFFSET) * 0.01
+      );
+      p.life = FIRE_MIN_LIFE + rand(idxSeed + FIRE_LIFE_SEED_OFFSET) * FIRE_LIFE_RANGE;
     }
 
-    p.v *= 0.995;
+    let flicker = (rand(idxSeed + p.life * FIRE_FLICKER_SEED) * 2.0 - 1.0) * 0.0008;
+    p.v.x += flicker;
+    p.v.y += 0.00055 + rand(idxSeed + p.life * FIRE_RISE_SEED) * 0.00035;
+    p.v *= 0.985;
+
+    let rise = clamp((p.p.y - FIRE_BASE_Y) / 1.8, 0.0, 1.0);
+    let lifeFade = clamp(p.life / 125.0, 0.0, 1.0);
+    p.color = vec4f(
+      mix(FIRE_COLOR_BASE, FIRE_COLOR_TIP, 1.0 - rise),
+      clamp((1.0 - rise) * lifeFade, 0.0, 1.0)
+    );
+  }
+
+  if (inputState.simMode == 6.0) {
+    let idxSeed = f32(idx) * RAIN_SEED_MULTIPLIER;
+
+    p.life -= 1.0;
+    p.v.y -= RAIN_GRAVITY;
+    p.v.x *= 0.995;
+    p.v.y *= 0.999;
+
+    if (p.life <= 0.0 || p.p.y < -1.0) {
+      let spawnXRand = rand(idxSeed + RAIN_SPAWN_X_SEED);
+      let spawnYRand = rand(idxSeed + RAIN_SPAWN_Y_SEED);
+      let velocityRandX = rand(idxSeed + RAIN_VELOCITY_X_SEED_OFFSET);
+      let velocityRandY = rand(idxSeed + RAIN_VELOCITY_Y_SEED_OFFSET);
+      let lifeRand = rand(idxSeed + RAIN_LIFE_SEED_OFFSET);
+      let spawnX = spawnXRand * 2.0 - 1.0;
+      let spawnY = RAIN_SPAWN_TOP + spawnYRand * 0.08;
+      p.p = vec2f(spawnX, spawnY);
+      p.prevP = p.p;
+      p.v = vec2f(
+        (velocityRandX * 2.0 - 1.0) * 0.0015,
+        -(0.01 + velocityRandY * 0.015)
+      );
+      p.life = RAIN_MIN_LIFE + lifeRand * RAIN_LIFE_RANGE;
+    }
+
+    let rainColorMix = rand(idxSeed + p.life * RAIN_COLOR_SEED);
+    p.color = vec4f(
+      mix(RAIN_COLOR_DARK, RAIN_COLOR_LIGHT, rainColorMix),
+      0.7
+    );
   }
 
   if (mouseDist > 0.001) {
@@ -155,22 +243,24 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
   p.p += p.v;
   p.v *= inputState.damping;
 
-  if (p.p.x > 1.0) {
-    p.p.x = 1.0;
-    p.v.x = -p.v.x;
-  }
-  if (p.p.x < -1.0) {
-    p.p.x = -1.0;
-    p.v.x = -p.v.x;
-  }
+  if (inputState.simMode != 5.0 && inputState.simMode != 6.0) {
+    if (p.p.x > 1.0) {
+      p.p.x = 1.0;
+      p.v.x = -p.v.x;
+    }
+    if (p.p.x < -1.0) {
+      p.p.x = -1.0;
+      p.v.x = -p.v.x;
+    }
 
-  if (p.p.y > 1.0) {
-    p.p.y = 1.0;
-    p.v.y = -p.v.y;
-  }
-  if (p.p.y < -1.0) {
-    p.p.y = -1.0;
-    p.v.y = -p.v.y;
+    if (p.p.y > 1.0) {
+      p.p.y = 1.0;
+      p.v.y = -p.v.y;
+    }
+    if (p.p.y < -1.0) {
+      p.p.y = -1.0;
+      p.v.y = -p.v.y;
+    }
   }
 
   particlesOut[idx] = p;
