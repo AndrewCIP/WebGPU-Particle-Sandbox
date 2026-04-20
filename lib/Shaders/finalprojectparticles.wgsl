@@ -26,12 +26,14 @@ const FIRE_BASE_X: f32 = 0.0;
 const FIRE_BASE_Y: f32 = -0.8;
 const FIRE_RESPAWN_Y: f32 = 1.05;
 const FIRE_MAX_SPREAD: f32 = 0.7;
+const FIRE_SEED_MULTIPLIER: f32 = 12.9898;
 const FIRE_MIN_LIFE: f32 = 45.0;
 const FIRE_LIFE_RANGE: f32 = 80.0;
 const FIRE_COLOR_BASE: vec3f = vec3f(1.0, 0.25, 0.02);
 const FIRE_COLOR_TIP: vec3f = vec3f(1.0, 0.82, 0.2);
 
 const RAIN_SPAWN_TOP: f32 = 1.0;
+const RAIN_SEED_MULTIPLIER: f32 = 78.233;
 const RAIN_MIN_LIFE: f32 = 75.0;
 const RAIN_LIFE_RANGE: f32 = 90.0;
 const RAIN_COLOR_DARK: vec3f = vec3f(0.2, 0.55, 0.95);
@@ -149,7 +151,7 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
   }
 
   if (inputState.simMode == 5.0) {
-    let idxSeed = f32(idx) * 12.9898;
+    let idxSeed = f32(idx) * FIRE_SEED_MULTIPLIER;
 
     p.life -= 1.0;
     let isLifeExpired = p.life <= 0.0;
@@ -181,7 +183,7 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
   }
 
   if (inputState.simMode == 6.0) {
-    let idxSeed = f32(idx) * 78.233;
+    let idxSeed = f32(idx) * RAIN_SEED_MULTIPLIER;
 
     p.life -= 1.0;
     p.v.y -= 0.0009 + inputState.forceStrength * 0.25;
@@ -189,19 +191,25 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
     p.v.y *= 0.999;
 
     if (p.life <= 0.0 || p.p.y < -1.0) {
-      let spawnX = rand(idxSeed + p.prevP.y * 17.0) * 2.0 - 1.0;
-      let spawnY = RAIN_SPAWN_TOP + rand(idxSeed + p.prevP.x * 29.0) * 0.08;
+      let spawnXRand = rand(idxSeed + p.prevP.y * 17.0);
+      let spawnYRand = rand(idxSeed + p.prevP.x * 29.0);
+      let velocityRandX = rand(idxSeed + 41.0);
+      let velocityRandY = rand(idxSeed + 67.0);
+      let lifeRand = rand(idxSeed + 79.0);
+      let spawnX = spawnXRand * 2.0 - 1.0;
+      let spawnY = RAIN_SPAWN_TOP + spawnYRand * 0.08;
       p.p = vec2f(spawnX, spawnY);
       p.prevP = p.p;
       p.v = vec2f(
-        (rand(idxSeed + 41.0) * 2.0 - 1.0) * 0.0015,
-        -(0.01 + rand(idxSeed + 67.0) * 0.015)
+        (velocityRandX * 2.0 - 1.0) * 0.0015,
+        -(0.01 + velocityRandY * 0.015)
       );
-      p.life = RAIN_MIN_LIFE + rand(idxSeed + 79.0) * RAIN_LIFE_RANGE;
+      p.life = RAIN_MIN_LIFE + lifeRand * RAIN_LIFE_RANGE;
     }
 
+    let rainColorMix = rand(idxSeed + p.life * 0.11);
     p.color = vec4f(
-      mix(RAIN_COLOR_DARK, RAIN_COLOR_LIGHT, rand(idxSeed + p.life * 0.11)),
+      mix(RAIN_COLOR_DARK, RAIN_COLOR_LIGHT, rainColorMix),
       0.7
     );
   }
