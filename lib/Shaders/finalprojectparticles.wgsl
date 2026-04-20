@@ -22,6 +22,17 @@ struct VertexOut {
   @location(0) color: vec4f,
 };
 
+const FIRE_BASE_X: f32 = 0.0;
+const FIRE_BASE_Y: f32 = -0.8;
+const FIRE_RESPAWN_Y: f32 = 1.05;
+const FIRE_MAX_SPREAD: f32 = 0.7;
+const FIRE_MIN_LIFE: f32 = 45.0;
+const FIRE_LIFE_RANGE: f32 = 80.0;
+
+const RAIN_SPAWN_TOP: f32 = 1.0;
+const RAIN_MIN_LIFE: f32 = 75.0;
+const RAIN_LIFE_RANGE: f32 = 90.0;
+
 @group(0) @binding(0) var<storage, read> particlesIn: array<Particle>;
 @group(0) @binding(1) var<storage, read_write> particlesOut: array<Particle>;
 @group(0) @binding(2) var<uniform> inputState: InputState;
@@ -133,21 +144,19 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
   }
 
   if (inputState.simMode == 5.0) {
-    let baseX = 0.0;
-    let baseY = -0.8;
     let idxSeed = f32(idx) * 12.9898;
 
     p.life -= 1.0;
 
-    if (p.life <= 0.0 || p.p.y > 1.05 || abs(p.p.x - baseX) > 0.7) {
+    if (p.life <= 0.0 || p.p.y > FIRE_RESPAWN_Y || abs(p.p.x - FIRE_BASE_X) > FIRE_MAX_SPREAD) {
       let spawnOffset = (rand(idxSeed + p.prevP.x * 91.7) * 2.0 - 1.0) * 0.08;
-      p.p = vec2f(baseX + spawnOffset, baseY);
+      p.p = vec2f(FIRE_BASE_X + spawnOffset, FIRE_BASE_Y);
       p.prevP = p.p;
       p.v = vec2f(
         (rand(idxSeed + 17.0 + p.prevP.y * 43.3) * 2.0 - 1.0) * 0.006,
         0.01 + rand(idxSeed + 31.0) * 0.01
       );
-      p.life = 45.0 + rand(idxSeed + 53.0) * 80.0;
+      p.life = FIRE_MIN_LIFE + rand(idxSeed + 53.0) * FIRE_LIFE_RANGE;
     }
 
     let flicker = (rand(idxSeed + p.life * 0.13) * 2.0 - 1.0) * 0.0008;
@@ -155,7 +164,7 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
     p.v.y += 0.00055 + rand(idxSeed + p.life * 0.07) * 0.00035;
     p.v *= 0.985;
 
-    let rise = clamp((p.p.y - baseY) / 1.8, 0.0, 1.0);
+    let rise = clamp((p.p.y - FIRE_BASE_Y) / 1.8, 0.0, 1.0);
     let lifeFade = clamp(p.life / 125.0, 0.0, 1.0);
     p.color = vec4f(
       mix(vec3f(1.0, 0.25, 0.02), vec3f(1.0, 0.82, 0.2), 1.0 - rise),
@@ -173,14 +182,14 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
 
     if (p.life <= 0.0 || p.p.y < -1.0) {
       let spawnX = rand(idxSeed + p.prevP.y * 17.0) * 2.0 - 1.0;
-      let spawnY = 1.0 + rand(idxSeed + p.prevP.x * 29.0) * 0.08;
+      let spawnY = RAIN_SPAWN_TOP + rand(idxSeed + p.prevP.x * 29.0) * 0.08;
       p.p = vec2f(spawnX, spawnY);
       p.prevP = p.p;
       p.v = vec2f(
         (rand(idxSeed + 41.0) * 2.0 - 1.0) * 0.0015,
         -(0.01 + rand(idxSeed + 67.0) * 0.015)
       );
-      p.life = 75.0 + rand(idxSeed + 79.0) * 90.0;
+      p.life = RAIN_MIN_LIFE + rand(idxSeed + 79.0) * RAIN_LIFE_RANGE;
     }
 
     p.color = vec4f(
