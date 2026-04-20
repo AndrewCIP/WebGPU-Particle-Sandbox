@@ -178,7 +178,7 @@ fn fragmentMain(in: VertexOut) -> @location(0) vec4f {
   let isHollow = shapeId >= 4u;
   let alpha = select(
     1.0 - smoothstep(-edge, edge, sdf),
-    max(1.0 - smoothstep(hollowThickness - edge, hollowThickness + edge, abs(sdf)), 0.0),
+    1.0 - smoothstep(hollowThickness - edge, hollowThickness + edge, abs(sdf)),
     isHollow
   );
 
