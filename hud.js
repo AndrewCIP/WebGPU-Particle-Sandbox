@@ -247,9 +247,13 @@ class HUDManager {
     shapeRow.appendChild(shapeButtons);
     section.appendChild(shapeRow);
 
+    const utilityLabelRow = document.createElement("div");
+    utilityLabelRow.className = "hud-control-row";
+    utilityLabelRow.appendChild(this.createLabel("Utility:"));
+    section.appendChild(utilityLabelRow);
+
     const controlsRow = document.createElement("div");
-    controlsRow.className = "hud-control-row";
-    controlsRow.appendChild(this.createLabel("Utility:"));
+    controlsRow.className = "hud-button-row";
     controlsRow.appendChild(new HUDButton("reset-particles", "R: Reset", () => {
       this.input.resetParticles();
       this.updateValues();

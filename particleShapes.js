@@ -3,10 +3,10 @@ export const PARTICLE_SHAPES = [
   { id: "shape-circle", label: "W: Circle", bit: 1 << 1, key: "w" },
   { id: "shape-triangle", label: "E: Triangle", bit: 1 << 2, key: "e" },
   { id: "shape-star", label: "Z: Star", bit: 1 << 3, key: "z" },
-  { id: "shape-square-hollow", label: "A: □", bit: 1 << 4, key: "a" },
-  { id: "shape-circle-hollow", label: "S: ○", bit: 1 << 5, key: "s" },
-  { id: "shape-triangle-hollow", label: "D: △", bit: 1 << 6, key: "d" },
-  { id: "shape-star-hollow", label: "X: ☆", bit: 1 << 7, key: "x" },
+  { id: "shape-square-hollow", label: "A: Square (Hollow)", bit: 1 << 4, key: "a" },
+  { id: "shape-circle-hollow", label: "S: Circle (Hollow)", bit: 1 << 5, key: "s" },
+  { id: "shape-triangle-hollow", label: "D: Triangle (Hollow)", bit: 1 << 6, key: "d" },
+  { id: "shape-star-hollow", label: "X: Star (Hollow)", bit: 1 << 7, key: "x" },
 ];
 
 export const ALL_PARTICLE_SHAPE_MASK = PARTICLE_SHAPES.reduce((mask, shape) => mask | shape.bit, 0);
