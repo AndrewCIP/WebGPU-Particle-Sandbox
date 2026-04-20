@@ -53,6 +53,7 @@ fn quadCorner(vIdx: u32) -> vec2f {
 }
 
 fn rand(seed: f32) -> f32 {
+  // Deterministic pseudo-random hash for shader variation; outputs values in [0, 1).
   return fract(sin(seed) * 43758.5453123);
 }
 
