@@ -162,21 +162,23 @@ fn fragmentMain(in: VertexOut) -> @location(0) vec4f {
 
   var sdf = 1.0;
   if (shapeId == 0u || shapeId == 4u) {
-    sdf = sdBox(p, vec2f(0.9, 0.9));
+    sdf = sdBox(p, vec2f(0.85, 0.85));
   } else if (shapeId == 1u || shapeId == 5u) {
-    sdf = sdCircle(p, 0.95);
+    sdf = sdCircle(p, 0.85);
   } else if (shapeId == 2u || shapeId == 6u) {
     sdf = sdTriangle(p * 1.05);
-  } else {
+  } else if (shapeId == 3u || shapeId == 7u) {
     sdf = sdStar(p * 1.25);
+  } else {
+    sdf = sdCircle(p, 0.85);
   }
 
   let edge = 0.03;
   let hollowThickness = 0.12;
   let isHollow = shapeId >= 4u;
   let alpha = select(
-    1.0 - smoothstep(0.0, edge, sdf),
-    1.0 - smoothstep(hollowThickness - edge, hollowThickness + edge, abs(sdf)),
+    1.0 - smoothstep(-edge, edge, sdf),
+    max(1.0 - smoothstep(hollowThickness - edge, hollowThickness + edge, abs(sdf)), 0.0),
     isHollow
   );
 
