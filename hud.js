@@ -49,6 +49,7 @@ class HUDManager {
     this.input = input;
     this.buttons = {};
     this.modeButtons = {};
+    this.colorButtons = {};
     this.showHudButton = null;
     this.createShowHudToggle();
     this.updateHUD();
@@ -59,6 +60,7 @@ class HUDManager {
     this.hudElement.innerHTML = "";
     this.buttons = {};
     this.modeButtons = {};
+    this.colorButtons = {};
 
     const title = document.createElement("div");
     title.className = "hud-title";
@@ -212,6 +214,39 @@ class HUDManager {
     }).create());
     section.appendChild(dampingRow);
 
+    // Colors
+    const colorsRow = document.createElement("div");
+    colorsRow.className = "hud-control-row";
+    colorsRow.appendChild(this.createLabel("Colors:"));
+    const colorButtonContainer = document.createElement("div");
+    colorButtonContainer.className = "hud-button-row colors-row";
+    const colors = [
+      { id: "color-0", label: "🌈", value: 0 },
+      { id: "color-1", label: "O/R", value: 1 },
+      { id: "color-2", label: "Blue", value: 2 },
+      { id: "color-3", label: "W/G", value: 3 },
+      { id: "color-4", label: "Green", value: 4 },
+      { id: "color-5", label: "Pink", value: 5 },
+      { id: "color-6", label: "Purple", value: 6 },
+      { id: "color-7", label: "Yellow", value: 7 },
+    ];
+    colors.forEach((color) => {
+      const btn = new HUDButton(
+        color.id,
+        color.label,
+        () => {
+          this.input.colorMode = color.value;
+          this.updateColorHighlight();
+        },
+        "colors"
+      );
+      this.colorButtons[color.value] = btn;
+      this.buttons[color.id] = btn;
+      colorButtonContainer.appendChild(btn.create());
+    });
+    colorsRow.appendChild(colorButtonContainer);
+    section.appendChild(colorsRow);
+
     // Trails
     const trailsRow = document.createElement("div");
     trailsRow.className = "hud-control-row";
@@ -222,6 +257,7 @@ class HUDManager {
     section.appendChild(trailsRow);
 
     this.hudElement.appendChild(section);
+    this.updateColorHighlight();
   }
 
   createUtilitySection() {
@@ -291,6 +327,13 @@ class HUDManager {
     if (particleCountValue) particleCountValue.textContent = this.input.activeParticleCount.toString();
     if (trailsBtn) trailsBtn.textContent = `T: Trails ${this.input.trailsEnabled ? "ON" : "OFF"}`;
     this.updateModeHighlight();
+    this.updateColorHighlight();
+  }
+
+  updateColorHighlight() {
+    Object.entries(this.colorButtons).forEach(([value, btn]) => {
+      btn.setActive(this.input.colorMode === parseInt(value));
+    });
   }
 
   refresh() {

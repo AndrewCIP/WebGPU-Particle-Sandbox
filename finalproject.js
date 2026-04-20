@@ -30,6 +30,7 @@ async function init() {
     y: 0,
     clickMode: 0,
     simMode: 1,
+    colorMode: 0,
     forceStrength: 0.002,
     damping: 0.992,
     particleScale: 1.0,
