@@ -40,7 +40,7 @@ const FIRE_FLICKER_SEED: f32 = 0.13;
 const FIRE_RISE_SEED: f32 = 0.07;
 const FIRE_MIN_LIFE: f32 = 45.0;
 const FIRE_LIFE_RANGE: f32 = 80.0;
-const FIRE_MIN_DIRECTION_DIST: f32 = 0.0001;
+const FIRE_MIN_NORMALIZATION_DISTANCE: f32 = 0.0001;
 const FIRE_COLOR_BASE: vec3f = vec3f(1.0, 0.25, 0.02);
 const FIRE_COLOR_TIP: vec3f = vec3f(1.0, 0.82, 0.2);
 
@@ -203,11 +203,9 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
 
     let flicker = (rand(idxSeed + p.life * FIRE_FLICKER_SEED) * 2.0 - 1.0) * 0.0008;
     let toCenter = vec2f(FIRE_BASE_X, FIRE_BASE_Y) - p.p;
-    var inwardDirection = vec2f(0.0, 0.0);
     let toCenterLen = length(toCenter);
-    if (toCenterLen > FIRE_MIN_DIRECTION_DIST) {
-      inwardDirection = toCenter / toCenterLen;
-    }
+    let safeToCenterLen = max(toCenterLen, FIRE_MIN_NORMALIZATION_DISTANCE);
+    let inwardDirection = select(vec2f(0.0, 0.0), toCenter / safeToCenterLen, toCenterLen > FIRE_MIN_NORMALIZATION_DISTANCE);
     let conePull = inwardDirection.x * (0.00028 + rise * 0.00035);
     p.v.x += conePull + flicker;
     p.v.y += 0.00055 + rand(idxSeed + p.life * FIRE_RISE_SEED) * 0.00035;
