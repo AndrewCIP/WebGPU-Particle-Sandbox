@@ -203,12 +203,12 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
 
     let flicker = (rand(idxSeed + p.life * FIRE_FLICKER_SEED) * 2.0 - 1.0) * 0.0008;
     let toCenter = vec2f(FIRE_BASE_X, FIRE_BASE_Y) - p.p;
-    var inwardDir = vec2f(0.0, 0.0);
+    var inwardDirection = vec2f(0.0, 0.0);
     let toCenterLen = length(toCenter);
     if (toCenterLen > FIRE_MIN_DIRECTION_DIST) {
-      inwardDir = toCenter / toCenterLen;
+      inwardDirection = toCenter / toCenterLen;
     }
-    let conePull = inwardDir.x * (0.00028 + rise * 0.00035);
+    let conePull = inwardDirection.x * (0.00028 + rise * 0.00035);
     p.v.x += conePull + flicker;
     p.v.y += 0.00055 + rand(idxSeed + p.life * FIRE_RISE_SEED) * 0.00035;
     if (p.p.y < FIRE_BASE_Y + FIRE_BASE_RADIUS * 1.6) {
