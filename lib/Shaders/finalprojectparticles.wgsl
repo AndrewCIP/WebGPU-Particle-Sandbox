@@ -44,6 +44,11 @@ const FIRE_LIFE_RANGE: f32 = 80.0;
 const FIRE_EPSILON: f32 = 0.0001;
 const FIRE_COLOR_BASE: vec3f = vec3f(1.0, 0.25, 0.02);
 const FIRE_COLOR_TIP: vec3f = vec3f(1.0, 0.82, 0.2);
+const FIRE_DISTANCE_SCALE: f32 = 1024.0;
+const FIRE_DISTANCE_MAX: f32 = 255.0;
+const FIRE_COLOR_CENTER: vec3f = vec3f(253.0 / 255.0, 207.0 / 255.0, 88.0 / 255.0);
+const FIRE_COLOR_MID: vec3f = vec3f(242.0 / 255.0, 125.0 / 255.0, 12.0 / 255.0);
+const FIRE_COLOR_EDGE: vec3f = vec3f(128.0 / 255.0, 9.0 / 255.0, 9.0 / 255.0);
 
 const RAIN_SPAWN_TOP: f32 = 1.0;
 const RAIN_SEED_MULTIPLIER: f32 = 78.233;
@@ -195,21 +200,18 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
 
     let flicker = (rand(inputState.time + f32(idx)) - 0.5) * 0.0008;
     p.v.x += flicker;
-    p.p.x += (0.0 - p.p.x) * 0.2;
+    p.p.x += (-p.p.x) * 0.2;
     p.v.x *= 0.98;
 
     let base = vec2f(FIRE_BASE_X, FIRE_BASE_Y);
-    let dist = min(length(p.p - base) * 1024.0, 255.0);
-    let centerColor = vec3f(253.0 / 255.0, 207.0 / 255.0, 88.0 / 255.0);
-    let midColor = vec3f(242.0 / 255.0, 125.0 / 255.0, 12.0 / 255.0);
-    let edgeColor = vec3f(128.0 / 255.0, 9.0 / 255.0, 9.0 / 255.0);
+    let dist = min(length(p.p - base) * FIRE_DISTANCE_SCALE, FIRE_DISTANCE_MAX);
     if (colorMode == 1u) {
       if (dist > 128.0) {
-        let t = (dist - 128.0) / (255.0 - 128.0);
-        p.color = vec4f(edgeColor * t + midColor * (1.0 - t), 1.0);
+        let t = (dist - 128.0) / (FIRE_DISTANCE_MAX - 128.0);
+        p.color = vec4f(FIRE_COLOR_EDGE * t + FIRE_COLOR_MID * (1.0 - t), 1.0);
       } else {
         let t = (128.0 - dist) / 128.0;
-        p.color = vec4f(centerColor * t + midColor * (1.0 - t), 1.0);
+        p.color = vec4f(FIRE_COLOR_CENTER * t + FIRE_COLOR_MID * (1.0 - t), 1.0);
       }
     }
   }
