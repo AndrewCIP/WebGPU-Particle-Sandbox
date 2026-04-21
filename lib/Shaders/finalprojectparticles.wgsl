@@ -184,7 +184,7 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
     let isLifeExpired = p.life <= 0.0;
     let isTooHigh = p.p.y > FIRE_RESPAWN_Y;
     let rise = clamp((p.p.y - FIRE_BASE_Y) / 1.8, 0.0, 1.0);
-    let coneHalfWidth = mix(FIRE_BASE_RADIUS, FIRE_MAX_SPREAD, rise);
+    let coneHalfWidth = mix(FIRE_MAX_SPREAD, FIRE_BASE_RADIUS, rise);
     let isTooFarFromCenter = abs(p.p.x - FIRE_BASE_X) > coneHalfWidth;
 
     if (isLifeExpired || isTooHigh || isTooFarFromCenter) {
@@ -194,15 +194,21 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
       p.p = vec2f(FIRE_BASE_X, FIRE_BASE_Y) + spawnOffset;
       p.prevP = p.p;
       p.v = vec2f(
-        spawnOffset.x * 0.035 + (rand(idxSeed + FIRE_VELOCITY_X_SEED_OFFSET + FIRE_SPAWN_VELOCITY_SEED) * 2.0 - 1.0) * 0.004,
+        -spawnOffset.x * 0.035 + (rand(idxSeed + FIRE_VELOCITY_X_SEED_OFFSET + FIRE_SPAWN_VELOCITY_SEED) * 2.0 - 1.0) * 0.004,
         0.006 + abs(spawnOffset.y) * 0.01 + rand(idxSeed + FIRE_VELOCITY_Y_SEED_OFFSET) * 0.008
       );
       p.life = FIRE_MIN_LIFE + rand(idxSeed + FIRE_LIFE_SEED_OFFSET) * FIRE_LIFE_RANGE;
     }
 
     let flicker = (rand(idxSeed + p.life * FIRE_FLICKER_SEED) * 2.0 - 1.0) * 0.0008;
-    let conePush = (p.p.x - FIRE_BASE_X) * (0.00028 + rise * 0.00035);
-    p.v.x += conePush + flicker;
+    let toCenter = vec2f(FIRE_BASE_X, FIRE_BASE_Y) - p.p;
+    var inwardDir = vec2f(0.0, 0.0);
+    let toCenterLen = length(toCenter);
+    if (toCenterLen > 0.0001) {
+      inwardDir = toCenter / toCenterLen;
+    }
+    let conePull = inwardDir.x * (0.00028 + rise * 0.00035);
+    p.v.x += conePull + flicker;
     p.v.y += 0.00055 + rand(idxSeed + p.life * FIRE_RISE_SEED) * 0.00035;
     if (p.p.y < FIRE_BASE_Y + FIRE_BASE_RADIUS * 1.6) {
       p.v += (vec2f(FIRE_BASE_X, FIRE_BASE_Y) - p.p) * 0.015;
