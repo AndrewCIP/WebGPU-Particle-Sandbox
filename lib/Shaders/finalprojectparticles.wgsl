@@ -28,7 +28,7 @@ struct VertexOut {
 const FIRE_BASE_X: f32 = 0.0;
 const FIRE_BASE_Y: f32 = -0.8;
 const FIRE_RESPAWN_Y: f32 = 1.05;
-const FIRE_MAX_SPREAD: f32 = 0.7;
+const FIRE_MAX_SPREAD: f32 = 0.85;
 const FIRE_BASE_RADIUS: f32 = 0.1;
 const FIRE_SEED_MULTIPLIER: f32 = 12.9898;
 const FIRE_SPAWN_OFFSET_SEED: f32 = 91.7;
@@ -190,7 +190,8 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
 
     p.life -= 1.0;
     if (p.life <= 0.0 || p.p.y > FIRE_RESPAWN_Y) {
-      p.p = vec2f(FIRE_BASE_X, FIRE_BASE_Y);
+      let spawnOffset = (rand(inputState.time + idxSeed + FIRE_SPAWN_OFFSET_SEED) - 0.5) * 0.2;
+      p.p = vec2f(clamp(FIRE_BASE_X + spawnOffset, -FIRE_MAX_SPREAD, FIRE_MAX_SPREAD), FIRE_BASE_Y);
       p.prevP = p.p;
       p.v = vec2f(
         (rand(inputState.time + idxSeed + 10.0) - 0.5) * 0.002,
@@ -201,7 +202,7 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
 
     let flicker = (rand(inputState.time + f32(idx)) - 0.5) * 0.0008;
     p.v.x += flicker;
-    p.p.x += (-p.p.x) * 0.2;
+    p.p.x += (0.0 - p.p.x) * 0.15;
     p.v.x *= 0.98;
 
     let base = vec2f(FIRE_BASE_X, FIRE_BASE_Y);
