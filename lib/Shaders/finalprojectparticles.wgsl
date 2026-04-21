@@ -15,8 +15,9 @@ struct InputState {
   damping: f32,
   particleScale: f32,
   trailsEnabled: f32,
+  time: f32,
   colorMode: f32,
-  _padding: vec3f,
+  _padding: vec2f,
 };
 
 struct VertexOut {
@@ -43,6 +44,12 @@ const FIRE_LIFE_RANGE: f32 = 80.0;
 const FIRE_EPSILON: f32 = 0.0001;
 const FIRE_COLOR_BASE: vec3f = vec3f(1.0, 0.25, 0.02);
 const FIRE_COLOR_TIP: vec3f = vec3f(1.0, 0.82, 0.2);
+const FIRE_DISTANCE_SCALE: f32 = 1024.0;
+const FIRE_DISTANCE_MAX: f32 = 255.0;
+const FIRE_COLOR_TRANSITION_DISTANCE: f32 = 128.0;
+const FIRE_COLOR_CENTER: vec3f = vec3f(253.0 / 255.0, 207.0 / 255.0, 88.0 / 255.0);
+const FIRE_COLOR_MID: vec3f = vec3f(242.0 / 255.0, 125.0 / 255.0, 12.0 / 255.0);
+const FIRE_COLOR_EDGE: vec3f = vec3f(128.0 / 255.0, 9.0 / 255.0, 9.0 / 255.0);
 
 const RAIN_SPAWN_TOP: f32 = 1.0;
 const RAIN_SEED_MULTIPLIER: f32 = 78.233;
@@ -182,43 +189,31 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
     let idxSeed = f32(idx) * FIRE_SEED_MULTIPLIER;
 
     p.life -= 1.0;
-    let isLifeExpired = p.life <= 0.0;
-    let isTooHigh = p.p.y > FIRE_RESPAWN_Y;
-    let rise = clamp((p.p.y - FIRE_BASE_Y) / 1.8, 0.0, 1.0);
-    let coneHalfWidth = mix(FIRE_MAX_SPREAD, FIRE_BASE_RADIUS, rise);
-    let isTooFarFromCenter = abs(p.p.x - FIRE_BASE_X) > coneHalfWidth;
-
-    if (isLifeExpired || isTooHigh || isTooFarFromCenter) {
-      let spawnRadius = sqrt(rand(idxSeed + FIRE_SPAWN_OFFSET_SEED)) * FIRE_BASE_RADIUS;
-      let spawnAngle = rand(idxSeed + FIRE_ANGLE_SEED_OFFSET) * TAU;
-      let spawnOffset = vec2f(cos(spawnAngle), sin(spawnAngle)) * spawnRadius;
-      p.p = vec2f(FIRE_BASE_X, FIRE_BASE_Y) + spawnOffset;
+    if (p.life <= 0.0 || p.p.y > FIRE_RESPAWN_Y) {
+      p.p = vec2f(FIRE_BASE_X, FIRE_BASE_Y);
       p.prevP = p.p;
       p.v = vec2f(
-        -spawnOffset.x * 0.035 + (rand(idxSeed + FIRE_VELOCITY_X_SEED_OFFSET + FIRE_SPAWN_VELOCITY_SEED) * 2.0 - 1.0) * 0.004,
-        0.006 + abs(spawnOffset.y) * 0.01 + rand(idxSeed + FIRE_VELOCITY_Y_SEED_OFFSET) * 0.008
+        (rand(inputState.time + idxSeed + 10.0) - 0.5) * 0.002,
+        0.01 + rand(inputState.time + idxSeed + 20.0) * 0.01
       );
-      p.life = FIRE_MIN_LIFE + rand(idxSeed + FIRE_LIFE_SEED_OFFSET) * FIRE_LIFE_RANGE;
+      p.life = 128.0 + rand(inputState.time + idxSeed + 30.0) * 127.0;
     }
 
-    let flicker = (rand(idxSeed + p.life * FIRE_FLICKER_SEED) * 2.0 - 1.0) * 0.0008;
-    let toCenter = vec2f(FIRE_BASE_X, FIRE_BASE_Y) - p.p;
-    let safeToCenterLen = max(length(toCenter), FIRE_EPSILON);
-    let inwardDirection = toCenter / safeToCenterLen;
-    let conePull = inwardDirection.x * (0.00028 + rise * 0.00035);
-    p.v.x += conePull + flicker;
-    p.v.y += 0.00055 + rand(idxSeed + p.life * FIRE_RISE_SEED) * 0.00035;
-    if (p.p.y < FIRE_BASE_Y + FIRE_BASE_RADIUS * 1.6) {
-      p.v += (vec2f(FIRE_BASE_X, FIRE_BASE_Y) - p.p) * 0.015;
-    }
-    p.v *= 0.985;
+    let flicker = (rand(inputState.time + f32(idx)) - 0.5) * 0.0008;
+    p.v.x += flicker;
+    p.p.x += (-p.p.x) * 0.2;
+    p.v.x *= 0.98;
 
-    let lifeFade = clamp(p.life / 125.0, 0.0, 1.0);
+    let base = vec2f(FIRE_BASE_X, FIRE_BASE_Y);
+    let dist = min(length(p.p - base) * FIRE_DISTANCE_SCALE, FIRE_DISTANCE_MAX);
     if (colorMode == 1u) {
-      p.color = vec4f(
-        mix(FIRE_COLOR_BASE, FIRE_COLOR_TIP, 1.0 - rise),
-        clamp((1.0 - rise) * lifeFade, 0.0, 1.0)
-      );
+      if (dist > FIRE_COLOR_TRANSITION_DISTANCE) {
+        let t = (dist - FIRE_COLOR_TRANSITION_DISTANCE) / (FIRE_DISTANCE_MAX - FIRE_COLOR_TRANSITION_DISTANCE);
+        p.color = vec4f(FIRE_COLOR_EDGE * t + FIRE_COLOR_MID * (1.0 - t), 1.0);
+      } else {
+        let t = (FIRE_COLOR_TRANSITION_DISTANCE - dist) / FIRE_COLOR_TRANSITION_DISTANCE;
+        p.color = vec4f(FIRE_COLOR_CENTER * t + FIRE_COLOR_MID * (1.0 - t), 1.0);
+      }
     }
   }
 
