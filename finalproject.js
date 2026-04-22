@@ -101,6 +101,10 @@ async function init() {
         input.simMode = 6;
         changed = true;
         break;
+      case "7":
+        input.simMode = 7;
+        changed = true;
+        break;
       case "ArrowUp":
         input.forceStrength = Math.min(input.forceStrength + 0.0002, 0.01);
         changed = true;
