@@ -77,6 +77,10 @@ async function init() {
   window.addEventListener("keydown", (e) => {
     let changed = false;
     switch (e.key) {
+      case "0":
+        input.simMode = 0;
+        changed = true;
+        break;
       case "1":
         input.simMode = 1;
         changed = true;
@@ -99,10 +103,6 @@ async function init() {
         break;
       case "6":
         input.simMode = 6;
-        changed = true;
-        break;
-      case "7":
-        input.simMode = 7;
         changed = true;
         break;
       case "ArrowUp":
