@@ -162,7 +162,7 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
   if (inputState.simMode == 7.0 && mouseDist > 0.001) {
     // Cursor mode: continuously attract particles toward mouse position.
     let normMouse = normalize(toMouse);
-    p.v += normMouse * inputState.forceStrength;
+    p.p += normMouse * inputState.forceStrength;
   }
 
   if (inputState.simMode == 1.0) {
