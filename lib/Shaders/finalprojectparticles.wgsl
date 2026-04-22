@@ -186,6 +186,13 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
   }
 
   if (inputState.simMode == 5.0) {
+    if (mouseDist > 0.001) {
+      let normMouse = normalize(toMouse);
+      p.v += normMouse * (inputState.forceStrength * 0.6);
+    }
+  }
+
+  if (inputState.simMode == 6.0) {
     let idxSeed = f32(idx) * FIRE_SEED_MULTIPLIER;
 
     p.life -= 1.0;
@@ -218,7 +225,7 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
     }
   }
 
-  if (inputState.simMode == 6.0) {
+  if (inputState.simMode == 7.0) {
     let idxSeed = f32(idx) * RAIN_SEED_MULTIPLIER;
 
     p.life -= 1.0;
@@ -269,10 +276,10 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
       0.5 + 0.5 * sin(phase + 2.0 * TAU / 3.0),
       1.0
     );
-  } else if (colorMode == 1u && inputState.simMode != 5.0) {
+  } else if (colorMode == 1u && inputState.simMode != 6.0) {
     let warmMix = rand(f32(idx) * FIRE_SEED_MULTIPLIER + 9.0);
     p.color = vec4f(mix(FIRE_COLOR_BASE, FIRE_COLOR_TIP, warmMix), 1.0);
-  } else if (colorMode == 2u && inputState.simMode != 6.0) {
+  } else if (colorMode == 2u && inputState.simMode != 7.0) {
     let coolMix = rand(f32(idx) * RAIN_SEED_MULTIPLIER + 21.0);
     p.color = vec4f(mix(RAIN_COLOR_DARK, RAIN_COLOR_LIGHT, coolMix), 1.0);
   } else if (colorMode == 3u) {
@@ -302,7 +309,7 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
   p.p += p.v;
   p.v *= inputState.damping;
 
-  if (inputState.simMode != 5.0 && inputState.simMode != 6.0) {
+  if (inputState.simMode != 6.0 && inputState.simMode != 7.0) {
     if (p.p.x > 1.0) {
       p.p.x = 1.0;
       p.v.x = -p.v.x;
