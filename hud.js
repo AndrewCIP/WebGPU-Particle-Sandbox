@@ -95,13 +95,13 @@ class HUDManager {
     section.appendChild(header);
 
     const modes = [
-      { id: "mode-0", label: "0: Cursor", value: 0 },
       { id: "mode-1", label: "1: Static", value: 1 },
       { id: "mode-2", label: "2: Gravity", value: 2 },
       { id: "mode-3", label: "3: Explosion", value: 3 },
       { id: "mode-4", label: "4: Orbit", value: 4 },
       { id: "mode-5", label: "5: Fire", value: 5 },
       { id: "mode-6", label: "6: Rain", value: 6 },
+      { id: "mode-7", label: "7: Cursor", value: 7 },
     ];
 
     const buttonContainer = document.createElement("div");
@@ -306,7 +306,7 @@ class HUDManager {
     const section = document.createElement("div");
     section.className = "hud-section hud-info";
     const info = document.createElement("div");
-    info.innerHTML = `<small><strong>Mouse:</strong> Left Click = Attract | Right Click = Repel<br/><strong>Keyboard:</strong> 0-6 = Modes | ↑↓ = Force | ←→ = Damping<br/><strong>Shortcuts:</strong> [ Smaller | ] Bigger | -/+ = Count | T = Trails | R = Reset | H = Toggle HUD</small>`;
+    info.innerHTML = `<small><strong>Mouse:</strong> Left Click = Attract | Right Click = Repel<br/><strong>Keyboard:</strong> 1-7 = Modes | ↑↓ = Force | ←→ = Damping<br/><strong>Shortcuts:</strong> [ Smaller | ] Bigger | -/+ = Count | T = Trails | R = Reset | H = Toggle HUD</small>`;
     section.appendChild(info);
     this.hudElement.appendChild(section);
   }
