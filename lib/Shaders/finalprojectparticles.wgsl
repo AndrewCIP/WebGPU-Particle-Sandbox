@@ -159,8 +159,9 @@ fn computeMain(@builtin(global_invocation_id) gid: vec3u) {
   let toMouse = inputState.mousePos - p.p;
   let mouseDist = length(toMouse);
 
-  if (inputState.simMode == 0.0) {
-    // Cursor mode: no simulation forces; only mouse interaction below applies.
+  if (inputState.simMode == 7.0 && mouseDist > 0.001) {
+    let normMouse = normalize(toMouse);
+    p.v += normMouse * inputState.forceStrength;
   }
 
   if (inputState.simMode == 1.0) {
