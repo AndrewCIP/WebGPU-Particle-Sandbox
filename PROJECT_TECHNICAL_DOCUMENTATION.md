@@ -288,19 +288,22 @@ The HUD `+` / `–` buttons and `=` / `-` keyboard shortcuts call `changeParticl
 
 Color is driven by a `colorMode` integer (0–7) that travels through the same `InputState` uniform. In the compute shader, at the end of each frame, a chain of `if/else if` statements sets `p.color` on every particle based on the active color mode. Because color is written **every compute frame**, changing the mode takes effect instantly on the next frame.
 
+**Rainbow (colorMode 0)** works by assigning each particle a unique **phase angle** derived from its index: `phase = f32(idx) * 0.031`. The three color channels (R, G, B) are then computed as sine waves of that same phase, but each **120° apart** from the others (`TAU/3` ≈ 2.094 radians). Because sine outputs range from −1 to +1 and color values need to be 0–1, the formula shifts and scales: `0.5 + 0.5 * sin(phase)`. The result is that stepping through the particle array by index is equivalent to stepping around a color wheel — particle 0 starts at one hue, and by the time you reach the last particle, every hue in the spectrum has been visited. This is numerically identical to converting evenly-spaced HSL hues to RGB, but done entirely with three sin calls and no branching.
+
 ```wgsl
-// lib/Shaders/finalprojectparticles.wgsl — computeMain (color assignment)
+// lib/Shaders/finalprojectparticles.wgsl — computeMain (rainbow color assignment)
 if (colorMode == 0u) {
-  // Rainbow: HSL-like sine wave based on particle index
-  p.color = vec4f(0.5 + 0.5 * sin(phase), ...);
-} else if (colorMode == 3u) {
-  p.color = vec4f(0.9, 0.9, 0.9, 1.0); // White
-} else if (colorMode == 4u) {
-  p.color = vec4f(0.2, 0.8, 0.2, 1.0); // Green
-} // ...etc.
+  let phase = f32(idx) * 0.031;              // unique angle per particle
+  p.color = vec4f(
+    0.5 + 0.5 * sin(phase),                 // Red channel
+    0.5 + 0.5 * sin(phase + TAU / 3.0),    // Green channel — 120° ahead
+    0.5 + 0.5 * sin(phase + 2.0 * TAU / 3.0), // Blue channel — 240° ahead
+    1.0
+  );
+}
 ```
 
-Fire mode (5) and Rain mode (6) have **auto-assigned colors** when their mode's color palette is active, blending based on distance from origin or random seeding.
+The other solid color modes (colorMode 3–7) simply write a constant `vec4f` — White, Green, Pink, Purple, Yellow respectively. Fire mode (1) and Rain mode (2) have **auto-assigned colors** when their palette is active, blending based on distance from origin or random seeding.
 
 ---
 
