@@ -10,6 +10,13 @@
 1. [Modes](#1-modes)
    - [How Shaders Work](#11-how-shaders-work-wgsl)
    - [How Modes Are Interchangeable](#12-how-modes-are-interchangeable)
+   - [Mode 1 — Static](#13-mode-1--static)
+   - [Mode 2 — Gravity](#14-mode-2--gravity)
+   - [Mode 3 — Explosion](#15-mode-3--explosion)
+   - [Mode 4 — Orbit](#16-mode-4--orbit)
+   - [Mode 5 — Fire](#17-mode-5--fire)
+   - [Mode 6 — Rain](#18-mode-6--rain)
+   - [Mode 7 — Cursor](#19-mode-7--cursor)
 2. [Particles](#2-particles)
    - [How the Particle Buffer Is Created and Structured](#21-how-the-particle-buffer-is-created-and-structured)
    - [How Particle Size Works](#22-how-particle-size-works)
@@ -84,7 +91,135 @@ case "2": input.simMode = 2; break;   // sets the uniform that drives the shader
 
 ---
 
-## 2. Particles
+### 1.3 Mode 1 — Static
+
+Static mode has an **intentionally empty** shader branch — it applies no forces and no movement logic of its own. Particles continue moving based on whatever velocity they already have (from a reset or previous mode), gradually slowing down due to damping. They bounce elastically off all four edges of the normalized `[-1, 1]` canvas space, and left/right mouse clicks still work to attract or repel particles from the cursor.
+
+This mode is useful as a "neutral" state to observe the baseline particle behavior: pure inertia, wall bouncing, and mouse interaction without any additional simulation force.
+
+```wgsl
+// lib/Shaders/finalprojectparticles.wgsl — computeMain
+if (inputState.simMode == 1.0) {
+  // No force applied — particles coast on existing velocity.
+}
+// Wall bounce applies to all non-Fire/non-Rain modes:
+if (p.p.x > 1.0) { p.p.x =  1.0; p.v.x = -p.v.x; }
+if (p.p.x < -1.0) { p.p.x = -1.0; p.v.x = -p.v.x; }
+// (same for y)
+```
+
+---
+
+### 1.4 Mode 2 — Gravity
+
+Gravity mode subtracts a downward value from each particle's vertical velocity **every compute frame**, simulating constant gravitational acceleration. The magnitude is scaled by `forceStrength * 0.3`, so the Force slider directly controls how strong gravity feels. Particles accumulate downward speed over time until they hit the floor and bounce back up, then gravity pulls them down again — creating an arcing, bouncing motion.
+
+```wgsl
+// lib/Shaders/finalprojectparticles.wgsl — computeMain
+if (inputState.simMode == 2.0) {
+  p.v.y -= inputState.forceStrength * 0.3;  // accumulate downward velocity each frame
+}
+```
+
+Damping prevents particles from bouncing forever — lower damping means they slow down quickly; higher damping keeps them bouncing longer.
+
+---
+
+### 1.5 Mode 3 — Explosion
+
+Explosion mode computes the **direction vector from the canvas center `(0, 0)` to each particle's current position**, normalizes it, and adds it to the particle's velocity each frame. This means the further from the center the particle already is, the more aligned the push is to drive it outward — but the push magnitude is constant regardless of distance. The result is particles continuously being pushed outward, building up speed and slamming into the walls.
+
+```wgsl
+// lib/Shaders/finalprojectparticles.wgsl — computeMain
+if (inputState.simMode == 3.0) {
+  let dir = p.p - center;             // vector from center to particle
+  let norm = normalize(dir);          // unit direction (ignores distance)
+  p.v += norm * (inputState.forceStrength * 0.4);  // add outward velocity
+}
+```
+
+The `dist > 0.001` guard prevents a divide-by-zero from `normalize()` if a particle is exactly at the center.
+
+---
+
+### 1.6 Mode 4 — Orbit
+
+Orbit mode uses the same radial direction as Explosion, but instead of pushing particles outward, it pushes them **perpendicular** to their radial direction. In 2D, rotating a vector 90 degrees counter-clockwise is done with the formula `tangent = vec2f(-radial.y, radial.x)` — this is the classic cross-product trick for 2D. Adding this tangential force each frame makes particles curve around the center in arcing, spiral paths.
+
+Because damping is applied after each force addition, particles don't orbit in perfect circles — they gradually lose speed and spiral inward, then get re-accelerated tangentially, producing the swirling vortex effect.
+
+```wgsl
+// lib/Shaders/finalprojectparticles.wgsl — computeMain
+if (inputState.simMode == 4.0) {
+  let radial  = normalize(p.p - center);
+  let tangent = vec2f(-radial.y, radial.x);  // 90° CCW rotation = tangential direction
+  p.v += tangent * (inputState.forceStrength * 0.4);
+}
+```
+
+---
+
+### 1.7 Mode 5 — Fire
+
+Fire is the most complex mode, using a **lifecycle system with deterministic pseudo-random seeding**. Each particle has a `life` counter that decrements every frame; when it reaches zero (or the particle rises above `FIRE_RESPAWN_Y = 1.05`), the particle respawns at the fire base (`y = -0.8`) with a small random horizontal offset and an upward velocity. The `rand()` function seeds each particle's randomness using a combination of `inputState.time` and the particle index (`idx * FIRE_SEED_MULTIPLIER`), ensuring particles vary from each other but are deterministic.
+
+Every frame, two additional forces act on each fire particle: a small random horizontal **flicker** (`± 0.0008`) that gives the flame a jittery, alive look, and a **centering pull** (`p.p.x += (0.0 - p.p.x) * 0.15`) that keeps particles from drifting too far sideways, channeling them into a flame column shape.
+
+```wgsl
+// lib/Shaders/finalprojectparticles.wgsl — computeMain (fire loop excerpt)
+p.life -= 1.0;
+if (p.life <= 0.0 || p.p.y > FIRE_RESPAWN_Y) {
+  // Respawn at base with new random velocity and life
+  p.p = vec2f(clamp(FIRE_BASE_X + spawnOffset, -FIRE_MAX_SPREAD, FIRE_MAX_SPREAD), FIRE_BASE_Y);
+  p.v = vec2f(randomHorizontal, 0.01 + randomUpward * 0.01);
+  p.life = 128.0 + rand(...) * 127.0;
+}
+let flicker = (rand(inputState.time + f32(idx)) - 0.5) * 0.0008;
+p.v.x += flicker;                      // random side jitter
+p.p.x += (0.0 - p.p.x) * 0.15;        // centering force
+```
+
+Color in Fire mode (when the Fire palette is active) transitions from hot yellow-white near the base to orange in the mid-flame to dark red at the tips, based on each particle's **distance from the fire base point**, not its height — which creates the realistic radial glow effect. Fire mode bypasses the wall-bounce logic entirely.
+
+---
+
+### 1.8 Mode 6 — Rain
+
+Rain mode spawns particles at the **top of the screen** at random horizontal positions and gives them a slight downward velocity. A constant gravity (`RAIN_GRAVITY = 0.0009`) is subtracted from `p.v.y` every frame, accelerating the fall. Horizontal velocity has mild damping (`*= 0.995`) to keep particles falling nearly straight. Like Fire, Rain particles use a life counter and respawn at the top when they expire or go out of bounds.
+
+When a particle's y-position drops to the floor (`y <= -1.0`) for the first time (detected by checking `p.size == 1.0`, i.e., it hasn't bounced before), the vertical velocity is reflected and multiplied by `RAIN_BOUNCE_DAMPING = 0.45` — a 55% velocity loss — and `p.size` is set to `0.85` to visually shrink the particle and mark it as "bounced." This size change also acts as a **state flag**: it prevents the particle from triggering the bounce logic again on subsequent frames.
+
+```wgsl
+// lib/Shaders/finalprojectparticles.wgsl — computeMain (rain bounce)
+p.v.y -= RAIN_GRAVITY;                  // constant downward acceleration
+let hasBounced = p.size < 0.95;         // size used as a state flag
+if (!hasBounced && p.p.y <= -1.0 && p.v.y < 0.0) {
+  p.v.y = abs(p.v.y) * RAIN_BOUNCE_DAMPING;  // damped vertical bounce
+  p.size = 0.85;                         // shrink + mark as bounced
+}
+```
+
+---
+
+### 1.9 Mode 7 — Cursor
+
+Cursor mode moves particles **directly toward the mouse position** by modifying `p.p` (position) rather than `p.v` (velocity). This means there is no acceleration build-up — particles move at a constant speed proportional to `forceStrength` regardless of how long the mode has been active. The direction is computed by normalizing the vector from the particle to the mouse each frame, so every particle always moves straight toward the current cursor position.
+
+This is deliberately different from the left-click attract behavior (which adds to velocity): Cursor mode gives smooth, predictable follow-the-leader movement, while click attract creates springy, momentum-based attraction.
+
+```wgsl
+// lib/Shaders/finalprojectparticles.wgsl — computeMain
+if (inputState.simMode == 7.0 && mouseDist > 0.001) {
+  let normMouse = normalize(toMouse);        // unit vector toward mouse
+  p.p += normMouse * inputState.forceStrength; // direct position step, no velocity
+}
+```
+
+The `mouseDist > 0.001` guard avoids a zero-length normalize when a particle is already sitting on top of the cursor.
+
+---
+
+
 
 ### 2.1 How the Particle Buffer Is Created and Structured
 
